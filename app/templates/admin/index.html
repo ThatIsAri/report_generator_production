@@ -1,0 +1,1062 @@
+{% extends "base.html" %}
+
+{% block title %}Панель администратора{% endblock %}
+
+{% block content %}
+<section class="admin-page">
+    <div class="admin-home" data-admin-home>
+        <header class="admin-header">
+            <a class="admin-back-button" href="{{ url_for('reports.index') }}">← Назад</a>
+            <div class="admin-header-content">
+                <span class="admin-kicker">Системное управление</span>
+                <h1>Панель администратора</h1>
+                <p>Раздел для настройки системных параметров и управления элементами приложения.</p>
+            </div>
+        </header>
+
+        <section class="admin-grid" aria-label="Разделы панели администратора">
+            {% for section in sections %}
+                <button class="admin-card" type="button" data-admin-section="{{ section.key }}">
+                    <span class="admin-card-icon" aria-hidden="true">
+                        {% if section.title == 'Пользователи' %}
+                            <svg viewBox="0 0 24 24"><path d="M9 11a3 3 0 1 0 0-6a3 3 0 0 0 0 6Z"></path><path d="M3.8 19a5.2 5.2 0 0 1 10.4 0"></path><path d="M16.5 10.5a2.5 2.5 0 1 0 0-5"></path><path d="M15.5 14.2A4.7 4.7 0 0 1 20.2 19"></path></svg>
+                        {% elif section.title == 'Отчеты' %}
+                            <svg viewBox="0 0 24 24"><path d="M7 4h8l4 4v12H7Z"></path><path d="M15 4v5h5"></path><path d="M9.5 13h6"></path><path d="M9.5 16h4"></path></svg>
+                        {% elif section.title == 'Шаблоны' %}
+                            <svg viewBox="0 0 24 24"><path d="M5 5h14v14H5Z"></path><path d="M8 9h8"></path><path d="M8 13h5"></path><path d="M8 17h7"></path></svg>
+                        {% else %}
+                            <svg viewBox="0 0 24 24"><path d="M12 8.5a3.5 3.5 0 1 1 0 7a3.5 3.5 0 0 1 0-7Z"></path><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.04.04a2 2 0 0 1-2.83 2.83l-.04-.04A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6l-.03.04a2 2 0 0 1-3.94 0L10 20a1.7 1.7 0 0 0-1-.6a1.7 1.7 0 0 0-1.88.34l-.04.04a2 2 0 1 1-2.83-2.83l.04-.04A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1l-.04-.03a2 2 0 0 1 0-3.94L4 10a1.7 1.7 0 0 0 .6-1a1.7 1.7 0 0 0-.34-1.88l-.04-.04a2 2 0 0 1 2.83-2.83l.04.04A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6l.03-.04a2 2 0 0 1 3.94 0L14 4a1.7 1.7 0 0 0 1 .6a1.7 1.7 0 0 0 1.88-.34l.04-.04a2 2 0 0 1 2.83 2.83l-.04.04A1.7 1.7 0 0 0 19.4 9c.11.38.32.72.6 1l.04.03a2 2 0 0 1 0 3.94L20 14c-.28.28-.49.62-.6 1Z"></path></svg>
+                        {% endif %}
+                    </span>
+                    <span class="admin-card-content">
+                        <strong>{{ section.title }}</strong>
+                        <span>{{ section.description }}</span>
+                    </span>
+                </button>
+            {% endfor %}
+        </section>
+    </div>
+
+    <section class="admin-users-module" data-admin-users-module hidden>
+        <nav class="admin-breadcrumbs" aria-label="Навигация панели администратора">
+            <button type="button" data-admin-home-link>Панель администратора</button>
+            <span aria-hidden="true">/</span>
+            <span>Пользователи</span>
+            <span data-admin-users-breadcrumb-separator hidden aria-hidden="true">/</span>
+            <span data-admin-users-breadcrumb-current hidden></span>
+        </nav>
+
+        <div class="admin-module-layout">
+            <aside class="admin-module-sidebar" aria-label="Подразделы пользователей">
+                <button class="admin-module-nav-button is-active" type="button" data-admin-users-tab="users">Пользователи</button>
+                <button class="admin-module-nav-button" type="button" data-admin-users-tab="groups">Группы пользователей</button>
+                <button class="admin-module-nav-button" type="button" data-admin-users-tab="access">Права доступа</button>
+                <button class="admin-module-nav-button" type="button" data-admin-users-tab="activity">Действия пользователей</button>
+            </aside>
+
+            <section class="admin-module-content">
+                <article class="admin-module-panel is-active" data-admin-users-panel="users">
+                    <h2>Пользователи</h2>
+                    <p>Управление пользователями, ролями и доступом к системе.</p>
+                    <div class="admin-users-toolbar">
+                        <label class="admin-users-search-field">
+                            <input
+                                class="admin-users-search-input"
+                                type="search"
+                                placeholder="Поиск пользователя"
+                                autocomplete="off"
+                                data-admin-users-search
+                            >
+                        </label>
+                    </div>
+
+                    <div class="admin-users-state" data-admin-users-loading hidden>Загрузка пользователей...</div>
+                    <div class="admin-users-state admin-users-state-error" data-admin-users-error hidden>Не удалось загрузить пользователей.</div>
+                    <div class="admin-users-state" data-admin-users-empty hidden>В организации пока нет пользователей.</div>
+                    <div class="admin-users-state" data-admin-users-no-results hidden>Пользователи не найдены.</div>
+
+                    <div class="admin-users-table-wrap" data-admin-users-table-wrap hidden>
+                        <table class="admin-users-table">
+                            <thead>
+                                <tr>
+                                    <th>Аватар</th>
+                                    <th>Фамилия</th>
+                                    <th>Имя</th>
+                                    <th>Почта</th>
+                                    <th>Должность</th>
+                                    <th>Роль</th>
+                                    <th aria-label="Действия"></th>
+                                </tr>
+                            </thead>
+                            <tbody data-admin-users-body></tbody>
+                        </table>
+                    </div>
+                </article>
+
+                <article class="admin-module-panel" data-admin-users-panel="groups" hidden>
+                    <div class="admin-groups-header-row">
+                        <div>
+                            <h2>Группы пользователей</h2>
+                            <p>Рабочие группы пользователей для совместной работы над отчетами и шаблонами.</p>
+                        </div>
+                        <button class="admin-primary-action-button" type="button" data-admin-group-create-open>Создать группу</button>
+                    </div>
+
+                    <div class="admin-users-toolbar admin-groups-toolbar">
+                        <label class="admin-users-search-field">
+                            <input
+                                class="admin-users-search-input"
+                                type="search"
+                                placeholder="Поиск группы"
+                                autocomplete="off"
+                                data-admin-groups-search
+                            >
+                        </label>
+                    </div>
+
+                    <div class="admin-users-state" data-admin-groups-loading hidden>Загрузка групп...</div>
+                    <div class="admin-users-state admin-users-state-error" data-admin-groups-error hidden>Не удалось загрузить группы пользователей.</div>
+                    <div class="admin-users-state" data-admin-groups-empty hidden>В организации пока нет групп пользователей.</div>
+                    <div class="admin-users-state" data-admin-groups-no-results hidden>Группы не найдены.</div>
+
+                    <div class="admin-users-table-wrap" data-admin-groups-table-wrap hidden>
+                        <table class="admin-users-table admin-groups-table">
+                            <thead>
+                                <tr>
+                                    <th>Аватар</th>
+                                    <th>Название группы</th>
+                                    <th>Участники</th>
+                                    <th>Отчеты</th>
+                                    <th>Шаблоны</th>
+                                    <th>Описание</th>
+                                    <th aria-label="Действия"></th>
+                                </tr>
+                            </thead>
+                            <tbody data-admin-groups-body></tbody>
+                        </table>
+                    </div>
+                </article>
+
+                <article class="admin-module-panel" data-admin-users-panel="access" hidden>
+                    <h2>Права доступа</h2>
+                    <p>Настройка прав доступа пользователей и рабочих групп к разделам и функциям приложения.</p>
+
+                    <div class="admin-access-layout">
+                        <aside class="admin-access-subjects">
+                            <div class="admin-access-type-switch" role="tablist" aria-label="Тип объекта прав">
+                                <button class="is-active" type="button" data-admin-access-subject-type="user">Пользователи</button>
+                                <button type="button" data-admin-access-subject-type="group">Группы</button>
+                            </div>
+
+                            <label class="admin-users-search-field">
+                                <input
+                                    class="admin-users-search-input"
+                                    type="search"
+                                    placeholder="Поиск пользователя"
+                                    autocomplete="off"
+                                    data-admin-access-search
+                                >
+                            </label>
+
+                            <div class="admin-access-state" data-admin-access-subjects-loading hidden>Загрузка объектов...</div>
+                            <div class="admin-access-state" data-admin-access-subjects-empty hidden>Нет объектов для настройки прав.</div>
+                            <div class="admin-access-state" data-admin-access-subjects-no-results hidden>Объекты не найдены.</div>
+                            <div class="admin-access-subject-list" data-admin-access-subjects-list></div>
+                        </aside>
+
+                        <section class="admin-access-editor">
+                            <div class="admin-access-state admin-access-editor-placeholder" data-admin-access-placeholder>
+                                Выберите пользователя или группу, чтобы настроить права доступа.
+                            </div>
+
+                            <div class="admin-access-state" data-admin-access-permissions-loading hidden>Загрузка прав...</div>
+                            <div class="admin-access-state admin-users-state-error" data-admin-access-permissions-error hidden>Не удалось загрузить права доступа.</div>
+
+                            <div class="admin-access-editor-body" data-admin-access-editor-body hidden>
+                                <div class="admin-access-selected-card">
+                                    <div class="admin-user-avatar" data-admin-access-selected-avatar>П</div>
+                                    <div>
+                                        <strong data-admin-access-selected-name>—</strong>
+                                        <span data-admin-access-selected-meta>—</span>
+                                    </div>
+                                </div>
+
+                                <div class="admin-access-permissions-grid" data-admin-access-permissions-grid></div>
+
+                                <div class="admin-access-footer">
+                                    <span data-admin-access-save-status>Изменения сохраняются для выбранного объекта.</span>
+                                    <button class="admin-primary-action-button" type="button" data-admin-access-save>Сохранить права</button>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                </article>
+
+                <article class="admin-module-panel" data-admin-users-panel="activity" hidden>
+                    <h2>Действия пользователей</h2>
+                    <p>Журнал действий пользователей в системе.</p>
+
+                    <div class="admin-actions-toolbar">
+                        <label class="admin-users-search-field">
+                            <input
+                                class="admin-users-search-input"
+                                type="search"
+                                placeholder="Поиск действия"
+                                autocomplete="off"
+                                data-admin-actions-search
+                            >
+                        </label>
+                        <select class="admin-actions-filter" data-admin-actions-user-filter>
+                            <option value="">Все пользователи</option>
+                        </select>
+                        <select class="admin-actions-filter" data-admin-actions-type-filter>
+                            <option value="">Все действия</option>
+                        </select>
+                    </div>
+
+                    <div class="admin-users-state" data-admin-actions-loading hidden>Загрузка действий...</div>
+                    <div class="admin-users-state admin-users-state-error" data-admin-actions-error hidden>Не удалось загрузить действия пользователей.</div>
+                    <div class="admin-users-state" data-admin-actions-empty hidden>В журнале пока нет действий пользователей.</div>
+                    <div class="admin-users-state" data-admin-actions-no-results hidden>Действия не найдены.</div>
+
+                    <div class="admin-users-table-wrap" data-admin-actions-table-wrap hidden>
+                        <table class="admin-users-table admin-actions-table">
+                            <thead>
+                                <tr>
+                                    <th>Дата</th>
+                                    <th>Пользователь</th>
+                                    <th>Действие</th>
+                                    <th>Объект</th>
+                                    <th>Описание</th>
+                                    <th>IP</th>
+                                </tr>
+                            </thead>
+                            <tbody data-admin-actions-body></tbody>
+                        </table>
+                    </div>
+                </article>
+            </section>
+        </div>
+    </section>
+
+    <section class="admin-users-module admin-reports-module" data-admin-reports-module hidden>
+        <nav class="admin-breadcrumbs" aria-label="Навигация панели администратора">
+            <button type="button" data-admin-home-link>Панель администратора</button>
+            <span aria-hidden="true">/</span>
+            <span>Отчеты</span>
+            <span data-admin-reports-breadcrumb-separator hidden aria-hidden="true">/</span>
+            <span data-admin-reports-breadcrumb-current hidden></span>
+        </nav>
+
+        <div class="admin-module-layout">
+            <aside class="admin-module-sidebar" aria-label="Подразделы отчетов">
+                <button class="admin-module-nav-button is-active" type="button" data-admin-reports-tab="registry">Реестр отчетов</button>
+                <button class="admin-module-nav-button" type="button" data-admin-reports-tab="access">Совместный доступ</button>
+                <button class="admin-module-nav-button" type="button" data-admin-reports-tab="structure">Папки и связи</button>
+                <button class="admin-module-nav-button" type="button" data-admin-reports-tab="taxonomy">Типы и теги</button>
+                <button class="admin-module-nav-button" type="button" data-admin-reports-tab="settings">Параметры отчетов</button>
+            </aside>
+
+            <section class="admin-module-content">
+                <article class="admin-module-panel is-active" data-admin-reports-panel="registry">
+                    <div class="admin-groups-header-row">
+                        <div>
+                            <h2>Реестр отчетов</h2>
+                            <p>Общий список отчетов, статусов, шаблонов и источников данных.</p>
+                        </div>
+                        <div class="admin-report-stats" data-admin-report-stats></div>
+                    </div>
+
+                    <div class="admin-users-toolbar">
+                        <label class="admin-users-search-field">
+                            <input
+                                class="admin-users-search-input"
+                                type="search"
+                                placeholder="Поиск отчета"
+                                autocomplete="off"
+                                data-admin-reports-search
+                            >
+                        </label>
+                    </div>
+
+                    <div class="admin-users-state" data-admin-reports-loading hidden>Загрузка отчетов...</div>
+                    <div class="admin-users-state admin-users-state-error" data-admin-reports-error hidden>Не удалось загрузить отчеты.</div>
+                    <div class="admin-users-state" data-admin-reports-empty hidden>В системе пока нет отчетов.</div>
+                    <div class="admin-users-state" data-admin-reports-no-results hidden>Отчеты не найдены.</div>
+
+                    <div class="admin-users-table-wrap" data-admin-reports-table-wrap hidden>
+                        <table class="admin-users-table admin-reports-table">
+                            <thead>
+                                <tr>
+                                    <th>Отчет</th>
+                                    <th>Дата</th>
+                                    <th>Шаблон</th>
+                                    <th>Папка</th>
+                                    <th>Доступ</th>
+                                    <th>Статус</th>
+                                    <th aria-label="Действия"></th>
+                                </tr>
+                            </thead>
+                            <tbody data-admin-reports-body></tbody>
+                        </table>
+                    </div>
+                </article>
+
+                <article class="admin-module-panel" data-admin-reports-panel="access" hidden>
+                    <h2>Совместный доступ</h2>
+                    <p>Сводка отчетов, открытых пользователям и группам организации.</p>
+
+                    <div class="admin-users-toolbar">
+                        <label class="admin-users-search-field">
+                            <input
+                                class="admin-users-search-input"
+                                type="search"
+                                placeholder="Поиск по доступам"
+                                autocomplete="off"
+                                data-admin-report-access-search
+                            >
+                        </label>
+                    </div>
+
+                    <div class="admin-users-state" data-admin-report-access-loading hidden>Загрузка доступов...</div>
+                    <div class="admin-users-state admin-users-state-error" data-admin-report-access-error hidden>Не удалось загрузить доступы отчетов.</div>
+                    <div class="admin-users-state" data-admin-report-access-empty hidden>Совместный доступ пока не открыт ни к одному отчету.</div>
+                    <div class="admin-users-state" data-admin-report-access-no-results hidden>Доступы не найдены.</div>
+
+                    <div class="admin-users-table-wrap" data-admin-report-access-table-wrap hidden>
+                        <table class="admin-users-table admin-report-access-table">
+                            <thead>
+                                <tr>
+                                    <th>Отчет</th>
+                                    <th>Пользователи</th>
+                                    <th>Группы</th>
+                                    <th>Всего объектов</th>
+                                    <th>Режим</th>
+                                    <th aria-label="Действия"></th>
+                                </tr>
+                            </thead>
+                            <tbody data-admin-report-access-body></tbody>
+                        </table>
+                    </div>
+                </article>
+
+                <article class="admin-module-panel" data-admin-reports-panel="structure" hidden>
+                    <h2>Папки и связи</h2>
+                    <p>Контроль размещения отчетов по папкам, связей между отчетами и источников данных.</p>
+
+                    <div class="admin-users-toolbar">
+                        <label class="admin-users-search-field">
+                            <input
+                                class="admin-users-search-input"
+                                type="search"
+                                placeholder="Поиск по папкам и связям"
+                                autocomplete="off"
+                                data-admin-report-structure-search
+                            >
+                        </label>
+                    </div>
+
+                    <div class="admin-users-state" data-admin-report-structure-loading hidden>Загрузка структуры...</div>
+                    <div class="admin-users-state admin-users-state-error" data-admin-report-structure-error hidden>Не удалось загрузить структуру отчетов.</div>
+                    <div class="admin-users-state" data-admin-report-structure-empty hidden>Отчеты пока не распределены по структуре.</div>
+                    <div class="admin-users-state" data-admin-report-structure-no-results hidden>Структура не найдена.</div>
+
+                    <div class="admin-users-table-wrap" data-admin-report-structure-table-wrap hidden>
+                        <table class="admin-users-table admin-report-structure-table">
+                            <thead>
+                                <tr>
+                                    <th>Отчет</th>
+                                    <th>Папка</th>
+                                    <th>Связан с</th>
+                                    <th>Источник</th>
+                                    <th>Обновлен</th>
+                                    <th aria-label="Действия"></th>
+                                </tr>
+                            </thead>
+                            <tbody data-admin-report-structure-body></tbody>
+                        </table>
+                    </div>
+                </article>
+
+                <article class="admin-module-panel" data-admin-reports-panel="taxonomy" hidden>
+                    <h2>Типы и теги отчетов</h2>
+                    <p>Настройка справочников, которыми пользователи размечают и фильтруют отчеты.</p>
+
+                    <div class="admin-taxonomy-grid">
+                        <section class="admin-access-permission-group">
+                            <div class="admin-access-permission-group-header">
+                                <div>
+                                    <h3>Типы отчетов</h3>
+                                    <p>Шаблонные типы и пользовательские категории отчетов.</p>
+                                </div>
+                                <button
+                                    class="admin-primary-action-button admin-taxonomy-add-button"
+                                    type="button"
+                                    data-admin-taxonomy-add
+                                    data-admin-taxonomy-scope="report"
+                                    data-admin-taxonomy-type="type"
+                                >Добавить тип</button>
+                            </div>
+                            <div class="admin-taxonomy-list" data-admin-report-type-options></div>
+                        </section>
+                        <section class="admin-access-permission-group">
+                            <div class="admin-access-permission-group-header">
+                                <div>
+                                    <h3>Теги отчетов</h3>
+                                    <p>Метки для поиска, группировки и быстрых сценариев работы.</p>
+                                </div>
+                                <button
+                                    class="admin-primary-action-button admin-taxonomy-add-button"
+                                    type="button"
+                                    data-admin-taxonomy-add
+                                    data-admin-taxonomy-scope="report"
+                                    data-admin-taxonomy-type="tag"
+                                >Добавить тег</button>
+                            </div>
+                            <div class="admin-taxonomy-list" data-admin-report-tag-options></div>
+                        </section>
+                    </div>
+
+                    <div class="admin-users-state" data-admin-report-taxonomy-loading hidden>Загрузка типов и тегов...</div>
+                    <div class="admin-users-state admin-users-state-error" data-admin-report-taxonomy-error hidden>Не удалось загрузить типы и теги отчетов.</div>
+                    <div class="admin-users-state" data-admin-report-taxonomy-empty hidden>Типы и теги отчетов пока не найдены.</div>
+                </article>
+
+                <article class="admin-module-panel" data-admin-reports-panel="settings" hidden>
+                    <div class="admin-groups-header-row">
+                        <div>
+                            <h2>Параметры отчетов</h2>
+                            <p>Базовые правила создания, совместной работы и поведения редактора отчетов.</p>
+                        </div>
+                        <button class="admin-primary-action-button" type="button" data-admin-report-settings-save>Сохранить настройки</button>
+                    </div>
+
+                    <div class="admin-users-state" data-admin-report-settings-loading hidden>Загрузка настроек...</div>
+                    <div class="admin-users-state admin-users-state-error" data-admin-report-settings-error hidden>Не удалось загрузить настройки отчетов.</div>
+
+                    <div class="admin-report-settings-grid" data-admin-report-settings-grid></div>
+                    <div class="admin-access-footer admin-report-settings-footer">
+                        <span data-admin-report-settings-status>Изменения сохраняются для текущей организации.</span>
+                    </div>
+                </article>
+            </section>
+        </div>
+    </section>
+
+    <section class="admin-users-module admin-templates-module" data-admin-templates-module hidden>
+        <nav class="admin-breadcrumbs" aria-label="Навигация панели администратора">
+            <button type="button" data-admin-home-link>Панель администратора</button>
+            <span aria-hidden="true">/</span>
+            <span>Шаблоны</span>
+            <span data-admin-templates-breadcrumb-separator hidden aria-hidden="true">/</span>
+            <span data-admin-templates-breadcrumb-current hidden></span>
+        </nav>
+
+        <div class="admin-module-layout">
+            <aside class="admin-module-sidebar" aria-label="Подразделы шаблонов">
+                <button class="admin-module-nav-button is-active" type="button" data-admin-templates-tab="registry">Реестр шаблонов</button>
+                <button class="admin-module-nav-button" type="button" data-admin-templates-tab="taxonomy">Типы и теги</button>
+                <button class="admin-module-nav-button" type="button" data-admin-templates-tab="access">Доступ к шаблонам</button>
+                <button class="admin-module-nav-button" type="button" data-admin-templates-tab="chips">Настройка чипов</button>
+                <button class="admin-module-nav-button" type="button" data-admin-templates-tab="settings">Параметры редактора</button>
+            </aside>
+
+            <section class="admin-module-content">
+                <article class="admin-module-panel is-active" data-admin-templates-panel="registry">
+                    <div class="admin-groups-header-row">
+                        <div>
+                            <h2>Реестр шаблонов</h2>
+                            <p>Список шаблонов, типов, тегов и состояния наполнения.</p>
+                        </div>
+                        <div class="admin-report-stats" data-admin-template-stats></div>
+                    </div>
+
+                    <div class="admin-users-toolbar">
+                        <label class="admin-users-search-field">
+                            <input
+                                class="admin-users-search-input"
+                                type="search"
+                                placeholder="Поиск шаблона"
+                                autocomplete="off"
+                                data-admin-templates-search
+                            >
+                        </label>
+                    </div>
+
+                    <div class="admin-users-state" data-admin-templates-loading hidden>Загрузка шаблонов...</div>
+                    <div class="admin-users-state admin-users-state-error" data-admin-templates-error hidden>Не удалось загрузить шаблоны.</div>
+                    <div class="admin-users-state" data-admin-templates-empty hidden>В системе пока нет шаблонов.</div>
+                    <div class="admin-users-state" data-admin-templates-no-results hidden>Шаблоны не найдены.</div>
+
+                    <div class="admin-users-table-wrap" data-admin-templates-table-wrap hidden>
+                        <table class="admin-users-table admin-templates-table">
+                            <thead>
+                                <tr>
+                                    <th>Шаблон</th>
+                                    <th>Тип</th>
+                                    <th>Тег</th>
+                                    <th>Основа</th>
+                                    <th>Доступ</th>
+                                    <th>Состояние</th>
+                                    <th aria-label="Действия"></th>
+                                </tr>
+                            </thead>
+                            <tbody data-admin-templates-body></tbody>
+                        </table>
+                    </div>
+                </article>
+
+                <article class="admin-module-panel" data-admin-templates-panel="taxonomy" hidden>
+                    <h2>Типы и теги шаблонов</h2>
+                    <p>Настройка справочников для классификации шаблонов и их поиска в редакторе.</p>
+
+                    <div class="admin-taxonomy-grid">
+                        <section class="admin-access-permission-group">
+                            <div class="admin-access-permission-group-header">
+                                <div>
+                                    <h3>Типы шаблонов</h3>
+                                    <p>Категории шаблонов, доступные при создании и администрировании.</p>
+                                </div>
+                                <button
+                                    class="admin-primary-action-button admin-taxonomy-add-button"
+                                    type="button"
+                                    data-admin-taxonomy-add
+                                    data-admin-taxonomy-scope="template"
+                                    data-admin-taxonomy-type="type"
+                                >Добавить тип</button>
+                            </div>
+                            <div class="admin-taxonomy-list" data-admin-template-type-options></div>
+                        </section>
+                        <section class="admin-access-permission-group">
+                            <div class="admin-access-permission-group-header">
+                                <div>
+                                    <h3>Теги шаблонов</h3>
+                                    <p>Метки для поиска, группировки и повторного использования шаблонов.</p>
+                                </div>
+                                <button
+                                    class="admin-primary-action-button admin-taxonomy-add-button"
+                                    type="button"
+                                    data-admin-taxonomy-add
+                                    data-admin-taxonomy-scope="template"
+                                    data-admin-taxonomy-type="tag"
+                                >Добавить тег</button>
+                            </div>
+                            <div class="admin-taxonomy-list" data-admin-template-tag-options></div>
+                        </section>
+                    </div>
+
+                    <div class="admin-users-state" data-admin-template-taxonomy-loading hidden>Загрузка типов и тегов...</div>
+                    <div class="admin-users-state admin-users-state-error" data-admin-template-taxonomy-error hidden>Не удалось загрузить типы и теги.</div>
+                    <div class="admin-users-state" data-admin-template-taxonomy-empty hidden>Типы и теги пока не найдены.</div>
+                </article>
+
+                <article class="admin-module-panel" data-admin-templates-panel="access" hidden>
+                    <h2>Доступ к шаблонам</h2>
+                    <p>Шаблоны, которые уже открыты рабочим группам организации.</p>
+
+                    <div class="admin-users-toolbar">
+                        <label class="admin-users-search-field">
+                            <input
+                                class="admin-users-search-input"
+                                type="search"
+                                placeholder="Поиск по доступам"
+                                autocomplete="off"
+                                data-admin-template-access-search
+                            >
+                        </label>
+                    </div>
+
+                    <div class="admin-users-state" data-admin-template-access-loading hidden>Загрузка доступов...</div>
+                    <div class="admin-users-state admin-users-state-error" data-admin-template-access-error hidden>Не удалось загрузить доступы шаблонов.</div>
+                    <div class="admin-users-state" data-admin-template-access-empty hidden>Доступ к шаблонам пока не открыт группам.</div>
+                    <div class="admin-users-state" data-admin-template-access-no-results hidden>Доступы не найдены.</div>
+
+                    <div class="admin-users-table-wrap" data-admin-template-access-table-wrap hidden>
+                        <table class="admin-users-table admin-template-access-table">
+                            <thead>
+                                <tr>
+                                    <th>Шаблон</th>
+                                    <th>Тип</th>
+                                    <th>Группы</th>
+                                    <th>Производные</th>
+                                    <th>Режим</th>
+                                    <th aria-label="Действия"></th>
+                                </tr>
+                            </thead>
+                            <tbody data-admin-template-access-body></tbody>
+                        </table>
+                    </div>
+                </article>
+
+                <article class="admin-module-panel" data-admin-templates-panel="chips" hidden>
+                    <div class="admin-groups-header-row">
+                        <div>
+                            <h2>Настройка чипов</h2>
+                            <p>Глобальные чипы организации, их категории и LaTeX-разметка для шаблонов.</p>
+                        </div>
+                        <button class="admin-primary-action-button" type="button" data-admin-template-chip-add>Добавить чип</button>
+                    </div>
+
+                    <div class="admin-template-chips-layout">
+                        <section class="admin-access-permission-group">
+                            <div class="admin-access-permission-group-header">
+                                <div>
+                                    <h3>Чипы</h3>
+                                    <p>Значения из этого списка появятся в редакторе шаблонов.</p>
+                                </div>
+                            </div>
+                            <div class="admin-template-chip-list" data-admin-template-chip-list></div>
+                        </section>
+
+                        <section class="admin-access-permission-group">
+                            <div class="admin-access-permission-group-header">
+                                <div>
+                                    <h3>Категории чипов</h3>
+                                    <p>Группы для боковой панели чипов и окна настройки.</p>
+                                </div>
+                                <button class="admin-primary-action-button admin-taxonomy-add-button" type="button" data-admin-template-chip-category-add>Добавить</button>
+                            </div>
+                            <div class="admin-template-chip-category-list" data-admin-template-chip-category-list></div>
+                        </section>
+                    </div>
+
+                    <div class="admin-users-state" data-admin-template-chips-loading hidden>Загрузка настроек чипов...</div>
+                    <div class="admin-users-state admin-users-state-error" data-admin-template-chips-error hidden>Не удалось загрузить настройки чипов.</div>
+                    <div class="admin-users-state" data-admin-template-chips-empty hidden>Чипы пока не настроены.</div>
+                </article>
+
+                <article class="admin-module-panel" data-admin-templates-panel="settings" hidden>
+                    <div class="admin-groups-header-row">
+                        <div>
+                            <h2>Параметры редактора</h2>
+                            <p>Правила создания шаблонов, чипов, доступа групп и отображения в отчетах.</p>
+                        </div>
+                        <button class="admin-primary-action-button" type="button" data-admin-template-settings-save>Сохранить настройки</button>
+                    </div>
+
+                    <div class="admin-users-state" data-admin-template-settings-loading hidden>Загрузка настроек...</div>
+                    <div class="admin-users-state admin-users-state-error" data-admin-template-settings-error hidden>Не удалось загрузить настройки шаблонов.</div>
+
+                    <div class="admin-report-settings-grid" data-admin-template-settings-grid></div>
+                    <div class="admin-access-footer admin-report-settings-footer">
+                        <span data-admin-template-settings-status>Изменения сохраняются для текущей организации.</span>
+                    </div>
+                </article>
+            </section>
+        </div>
+    </section>
+
+    <section class="admin-users-module admin-system-module" data-admin-system-module hidden>
+        <nav class="admin-breadcrumbs" aria-label="Навигация панели администратора">
+            <button type="button" data-admin-home-link>Панель администратора</button>
+            <span aria-hidden="true">/</span>
+            <span>Система</span>
+            <span data-admin-system-breadcrumb-separator hidden aria-hidden="true">/</span>
+            <span data-admin-system-breadcrumb-current hidden></span>
+        </nav>
+
+        <div class="admin-module-layout">
+            <aside class="admin-module-sidebar" aria-label="Подразделы системных настроек">
+                <button class="admin-module-nav-button is-active" type="button" data-admin-system-tab="general">Общие настройки</button>
+                <button class="admin-module-nav-button" type="button" data-admin-system-tab="security">Безопасность</button>
+                <button class="admin-module-nav-button" type="button" data-admin-system-tab="maintenance">Обслуживание данных</button>
+                <button class="admin-module-nav-button" type="button" data-admin-system-tab="diagnostics">Диагностика</button>
+            </aside>
+
+            <section class="admin-module-content">
+                <article class="admin-module-panel is-active" data-admin-system-panel="general">
+                    <div class="admin-groups-header-row">
+                        <div>
+                            <h2>Общие настройки</h2>
+                            <p>Поведение главной страницы, меню организации и уведомлений интерфейса.</p>
+                        </div>
+                        <button class="admin-primary-action-button" type="button" data-admin-system-settings-save>Сохранить настройки</button>
+                    </div>
+
+                    <div class="admin-users-state" data-admin-system-settings-loading hidden>Загрузка системных настроек...</div>
+                    <div class="admin-users-state admin-users-state-error" data-admin-system-settings-error hidden>Не удалось загрузить системные настройки.</div>
+                    <div class="admin-system-settings-grid" data-admin-system-settings-grid="general"></div>
+                    <div class="admin-access-footer admin-report-settings-footer">
+                        <span data-admin-system-settings-status>Изменения сохраняются для текущей организации.</span>
+                    </div>
+                </article>
+
+                <article class="admin-module-panel" data-admin-system-panel="security" hidden>
+                    <div class="admin-groups-header-row">
+                        <div>
+                            <h2>Безопасность</h2>
+                            <p>Правила регистрации, входа и контроля активных учетных записей.</p>
+                        </div>
+                        <button class="admin-primary-action-button" type="button" data-admin-system-settings-save>Сохранить настройки</button>
+                    </div>
+
+                    <div class="admin-users-state" data-admin-system-settings-loading hidden>Загрузка системных настроек...</div>
+                    <div class="admin-users-state admin-users-state-error" data-admin-system-settings-error hidden>Не удалось загрузить системные настройки.</div>
+                    <div class="admin-system-settings-grid" data-admin-system-settings-grid="security"></div>
+                    <div class="admin-access-footer admin-report-settings-footer">
+                        <span data-admin-system-settings-status>Изменения сохраняются для текущей организации.</span>
+                    </div>
+                </article>
+
+                <article class="admin-module-panel" data-admin-system-panel="maintenance" hidden>
+                    <div class="admin-groups-header-row">
+                        <div>
+                            <h2>Обслуживание данных</h2>
+                            <p>Сроки хранения журналов, временных импортов и размер административных списков.</p>
+                        </div>
+                        <button class="admin-primary-action-button" type="button" data-admin-system-settings-save>Сохранить настройки</button>
+                    </div>
+
+                    <div class="admin-users-state" data-admin-system-settings-loading hidden>Загрузка системных настроек...</div>
+                    <div class="admin-users-state admin-users-state-error" data-admin-system-settings-error hidden>Не удалось загрузить системные настройки.</div>
+                    <div class="admin-system-settings-grid" data-admin-system-settings-grid="maintenance"></div>
+                    <div class="admin-access-footer admin-report-settings-footer">
+                        <span data-admin-system-settings-status>Изменения сохраняются для текущей организации.</span>
+                    </div>
+                </article>
+
+                <article class="admin-module-panel" data-admin-system-panel="diagnostics" hidden>
+                    <div class="admin-groups-header-row">
+                        <div>
+                            <h2>Диагностика</h2>
+                            <p>Состояние ключевых таблиц, конфигурации, хранилища и данных приложения.</p>
+                        </div>
+                        <button class="admin-primary-action-button" type="button" data-admin-system-diagnostics-refresh>Обновить</button>
+                    </div>
+
+                    <div class="admin-users-state" data-admin-system-diagnostics-loading hidden>Загрузка диагностики...</div>
+                    <div class="admin-users-state admin-users-state-error" data-admin-system-diagnostics-error hidden>Не удалось загрузить диагностику.</div>
+
+                    <div class="admin-system-diagnostics" data-admin-system-diagnostics hidden>
+                        <div class="admin-system-summary" data-admin-system-summary></div>
+                        <div class="admin-system-diagnostic-grid" data-admin-system-diagnostic-grid></div>
+                    </div>
+                </article>
+            </section>
+        </div>
+    </section>
+</section>
+
+<div class="admin-user-actions-menu" data-admin-user-actions-menu hidden>
+    <button type="button" data-admin-user-action="card">Показать карточку пользователя</button>
+    <button type="button" class="is-danger" data-admin-user-action="delete">Удалить</button>
+</div>
+
+<div class="admin-user-actions-menu" data-admin-group-actions-menu hidden>
+    <button type="button" data-admin-group-action="card">Открыть карточку группы</button>
+    <button type="button" data-admin-group-action="members">Настроить участников</button>
+    <button type="button" class="is-danger" data-admin-group-action="delete">Удалить</button>
+</div>
+
+<div class="modal-backdrop admin-user-card-backdrop" data-modal="adminUserCardModal" aria-hidden="true">
+    <div class="modal compact admin-user-card-modal" role="dialog" aria-modal="true" aria-labelledby="adminUserCardTitle">
+        <div class="modal-header">
+            <div>
+                <h2 id="adminUserCardTitle">Карточка пользователя</h2>
+                <p data-admin-user-card-display-name>—</p>
+            </div>
+            <button type="button" class="modal-close" data-close-modal aria-label="Закрыть">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="admin-user-card-profile">
+                <div class="admin-user-card-avatar" data-admin-user-card-avatar>П</div>
+                <div>
+                    <strong data-admin-user-card-name>—</strong>
+                    <span data-admin-user-card-email>—</span>
+                </div>
+            </div>
+            <dl class="admin-user-card-fields">
+                <div>
+                    <dt>Фамилия</dt>
+                    <dd data-admin-user-card-last-name>—</dd>
+                </div>
+                <div>
+                    <dt>Имя</dt>
+                    <dd data-admin-user-card-first-name>—</dd>
+                </div>
+                <div>
+                    <dt>Должность</dt>
+                    <dd data-admin-user-card-position>—</dd>
+                </div>
+                <div>
+                    <dt>Роль</dt>
+                    <dd data-admin-user-card-role>—</dd>
+                </div>
+                <div>
+                    <dt>ID пользователя</dt>
+                    <dd data-admin-user-card-id>—</dd>
+                </div>
+                <div>
+                    <dt>ID организации</dt>
+                    <dd data-admin-user-card-organization-id>—</dd>
+                </div>
+            </dl>
+        </div>
+    </div>
+</div>
+
+<div class="modal-backdrop" data-modal="adminUserDeleteModal" aria-hidden="true">
+    <div class="modal compact" role="dialog" aria-modal="true" aria-labelledby="adminUserDeleteTitle">
+        <div class="modal-header">
+            <div>
+                <h2 id="adminUserDeleteTitle">Удалить пользователя?</h2>
+                <p>Пользователь будет удален из организации. Это действие нельзя отменить.</p>
+            </div>
+            <button type="button" class="modal-close" data-close-modal aria-label="Закрыть">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="admin-delete-user-summary" data-admin-delete-user-name>—</div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="secondary-button" data-close-modal>Отмена</button>
+            <button type="button" class="danger-button" data-admin-user-delete-confirm>Удалить</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-backdrop" data-modal="adminGroupCreateModal" aria-hidden="true">
+    <form class="modal admin-group-modal" role="dialog" aria-modal="true" aria-labelledby="adminGroupCreateTitle" data-admin-group-create-form>
+        <div class="modal-header">
+            <div>
+                <h2 id="adminGroupCreateTitle">Создание группы</h2>
+                <p>Создайте рабочую группу для совместной работы над отчетами и шаблонами.</p>
+            </div>
+            <button type="button" class="modal-close" data-close-modal aria-label="Закрыть">×</button>
+        </div>
+        <div class="modal-body">
+            <label class="admin-form-field">
+                <span>Название группы</span>
+                <input type="text" data-admin-group-create-name placeholder="Например, Аналитики" autocomplete="off">
+            </label>
+            <label class="admin-form-field">
+                <span>Описание</span>
+                <textarea data-admin-group-create-description placeholder="Кратко опишите, над чем работает группа"></textarea>
+            </label>
+            <section class="admin-member-picker">
+                <div class="admin-member-picker-header">
+                    <h3>Участники группы</h3>
+                    <span data-admin-group-create-selected-count>Выбрано: 0</span>
+                </div>
+                <label class="admin-users-search-field">
+                    <input
+                        class="admin-users-search-input"
+                        type="search"
+                        placeholder="Поиск участника"
+                        autocomplete="off"
+                        data-admin-group-create-member-search
+                    >
+                </label>
+                <div class="admin-member-picker-state" data-admin-group-create-members-loading hidden>Загрузка участников...</div>
+                <div class="admin-member-picker-state" data-admin-group-create-members-empty hidden>В организации пока нет пользователей.</div>
+                <div class="admin-member-picker-state" data-admin-group-create-members-no-results hidden>Участники не найдены.</div>
+                <div class="admin-member-picker-list" data-admin-group-create-members-list></div>
+            </section>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="secondary-button" data-close-modal>Отмена</button>
+            <button type="submit" class="admin-primary-action-button" data-admin-group-create-submit>Создать</button>
+        </div>
+    </form>
+</div>
+
+<div class="modal-backdrop" data-modal="adminGroupCardModal" aria-hidden="true">
+    <div class="modal admin-group-card-modal" role="dialog" aria-modal="true" aria-labelledby="adminGroupCardTitle">
+        <div class="modal-header">
+            <div>
+                <h2 id="adminGroupCardTitle">Карточка группы</h2>
+                <p data-admin-group-card-description>—</p>
+            </div>
+            <button type="button" class="modal-close" data-close-modal aria-label="Закрыть">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="admin-group-card-head">
+                <div class="admin-user-card-avatar admin-group-card-avatar" data-admin-group-card-avatar>Г</div>
+                <div>
+                    <strong data-admin-group-card-name>—</strong>
+                    <span data-admin-group-card-meta>—</span>
+                </div>
+            </div>
+            <div class="admin-group-card-grid">
+                <section>
+                    <h3>Участники</h3>
+                    <div class="admin-group-card-list" data-admin-group-card-members></div>
+                </section>
+                <section>
+                    <h3>Отчеты</h3>
+                    <div class="admin-group-card-placeholder">Отчеты группы будут добавлены позже.</div>
+                </section>
+                <section>
+                    <h3>Шаблоны</h3>
+                    <div class="admin-group-card-placeholder">Шаблоны группы будут добавлены позже.</div>
+                </section>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-backdrop" data-modal="adminGroupMembersModal" aria-hidden="true">
+    <div class="modal admin-group-modal" role="dialog" aria-modal="true" aria-labelledby="adminGroupMembersTitle">
+        <div class="modal-header">
+            <div>
+                <h2 id="adminGroupMembersTitle">Настроить участников</h2>
+                <p data-admin-group-members-subtitle>Выберите пользователей организации для рабочей группы.</p>
+            </div>
+            <button type="button" class="modal-close" data-close-modal aria-label="Закрыть">×</button>
+        </div>
+        <div class="modal-body">
+            <section class="admin-member-picker">
+                <div class="admin-member-picker-header">
+                    <h3>Участники группы</h3>
+                    <span data-admin-group-edit-selected-count>Выбрано: 0</span>
+                </div>
+                <label class="admin-users-search-field">
+                    <input
+                        class="admin-users-search-input"
+                        type="search"
+                        placeholder="Поиск участника"
+                        autocomplete="off"
+                        data-admin-group-edit-member-search
+                    >
+                </label>
+                <div class="admin-member-picker-state" data-admin-group-edit-members-loading hidden>Загрузка участников...</div>
+                <div class="admin-member-picker-state" data-admin-group-edit-members-empty hidden>В организации пока нет пользователей.</div>
+                <div class="admin-member-picker-state" data-admin-group-edit-members-no-results hidden>Участники не найдены.</div>
+                <div class="admin-member-picker-list" data-admin-group-edit-members-list></div>
+            </section>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="secondary-button" data-close-modal>Отмена</button>
+            <button type="button" class="admin-primary-action-button" data-admin-group-members-save>Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-backdrop" data-modal="adminGroupDeleteModal" aria-hidden="true">
+    <div class="modal compact" role="dialog" aria-modal="true" aria-labelledby="adminGroupDeleteTitle">
+        <div class="modal-header">
+            <div>
+                <h2 id="adminGroupDeleteTitle">Удалить группу?</h2>
+                <p>Группа будет скрыта из списка. Доступы группы к отчетам и шаблонам будут отключены.</p>
+            </div>
+            <button type="button" class="modal-close" data-close-modal aria-label="Закрыть">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="admin-delete-user-summary" data-admin-delete-group-name>—</div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="secondary-button" data-close-modal>Отмена</button>
+            <button type="button" class="danger-button" data-admin-group-delete-confirm>Удалить</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-backdrop" data-modal="adminTaxonomyOptionModal" aria-hidden="true">
+    <form class="modal compact admin-taxonomy-modal" role="dialog" aria-modal="true" aria-labelledby="adminTaxonomyOptionTitle" data-admin-taxonomy-form>
+        <div class="modal-header">
+            <div>
+                <h2 id="adminTaxonomyOptionTitle" data-admin-taxonomy-modal-title>Добавить значение</h2>
+                <p data-admin-taxonomy-modal-subtitle>Значение будет доступно в текущей организации.</p>
+            </div>
+            <button type="button" class="modal-close" data-close-modal aria-label="Закрыть">×</button>
+        </div>
+        <div class="modal-body">
+            <label class="admin-form-field">
+                <span>Название</span>
+                <input type="text" data-admin-taxonomy-name placeholder="Например, Аналитика" autocomplete="off" required>
+            </label>
+            <label class="admin-form-field">
+                <span>Цвет</span>
+                <input type="text" data-admin-taxonomy-color placeholder="#4f46e5" autocomplete="off">
+            </label>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="secondary-button" data-close-modal>Отмена</button>
+            <button type="submit" class="admin-primary-action-button" data-admin-taxonomy-submit>Сохранить</button>
+        </div>
+    </form>
+</div>
+
+<div class="modal-backdrop" data-modal="adminTemplateChipModal" aria-hidden="true">
+    <form class="modal admin-template-chip-modal" role="dialog" aria-modal="true" aria-labelledby="adminTemplateChipTitle" data-admin-template-chip-form>
+        <div class="modal-header">
+            <div>
+                <h2 id="adminTemplateChipTitle" data-admin-template-chip-modal-title>Добавить чип</h2>
+                <p>Опишите чип и его LaTeX-разметку для шаблонов.</p>
+            </div>
+            <button type="button" class="modal-close" data-close-modal aria-label="Закрыть">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="admin-template-chip-form-grid">
+                <label class="admin-form-field">
+                    <span>Название</span>
+                    <input type="text" data-admin-template-chip-label placeholder="Например, Итоговый вывод" autocomplete="off" required>
+                </label>
+                <label class="admin-form-field">
+                    <span>Ключ</span>
+                    <input type="text" data-admin-template-chip-field placeholder="admin_chip_summary" autocomplete="off">
+                </label>
+                <label class="admin-form-field">
+                    <span>Категория</span>
+                    <select data-admin-template-chip-category></select>
+                </label>
+                <label class="admin-form-field">
+                    <span>На основании</span>
+                    <input type="text" data-admin-template-chip-based-on placeholder="Ключ базового чипа" autocomplete="off">
+                </label>
+                <label class="admin-form-field">
+                    <span>Тип данных</span>
+                    <select data-admin-template-chip-kind>
+                        <option value="text">Текст</option>
+                        <option value="table">Таблица</option>
+                        <option value="list">Список</option>
+                        <option value="asset">Графика</option>
+                        <option value="page_break">Разрыв страницы</option>
+                    </select>
+                </label>
+                <label class="admin-template-chip-checkbox">
+                    <input type="checkbox" data-admin-template-chip-favorite>
+                    <span>Показывать в избранном</span>
+                </label>
+            </div>
+            <label class="admin-form-field">
+                <span>LaTeX-разметка чипа</span>
+                <textarea class="admin-template-chip-latex" data-admin-template-chip-latex placeholder="Например: \\textbf{ {{ value }} }"></textarea>
+            </label>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="secondary-button" data-close-modal>Отмена</button>
+            <button type="submit" class="admin-primary-action-button" data-admin-template-chip-submit>Сохранить</button>
+        </div>
+    </form>
+</div>
+
+<div class="modal-backdrop" data-modal="adminTemplateChipCategoryModal" aria-hidden="true">
+    <form class="modal compact admin-taxonomy-modal" role="dialog" aria-modal="true" aria-labelledby="adminTemplateChipCategoryTitle" data-admin-template-chip-category-form>
+        <div class="modal-header">
+            <div>
+                <h2 id="adminTemplateChipCategoryTitle" data-admin-template-chip-category-modal-title>Добавить категорию</h2>
+                <p>Категория появится в боковой панели чипов редактора.</p>
+            </div>
+            <button type="button" class="modal-close" data-close-modal aria-label="Закрыть">×</button>
+        </div>
+        <div class="modal-body">
+            <label class="admin-form-field">
+                <span>Название</span>
+                <input type="text" data-admin-template-chip-category-name placeholder="Например, Расчеты" autocomplete="off" required>
+            </label>
+            <label class="admin-form-field">
+                <span>Ключ</span>
+                <input type="text" data-admin-template-chip-category-key placeholder="calculations" autocomplete="off">
+            </label>
+            <label class="admin-form-field">
+                <span>Описание</span>
+                <textarea data-admin-template-chip-category-description placeholder="Коротко опишите назначение категории"></textarea>
+            </label>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="secondary-button" data-close-modal>Отмена</button>
+            <button type="submit" class="admin-primary-action-button" data-admin-template-chip-category-submit>Сохранить</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Импорт документа{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h2>Импорт структурированного документа</h2>
+
+    <form method="post" action="{{ url_for('documents.handle_upload_document') }}" enctype="multipart/form-data" class="upload-form">
+        <label>
+            Файл DOCX, XLSX, CSV или текстовый PDF
+            <input id="documentInput" type="file" name="document" accept=".docx,.xlsx,.xlsm,.xltx,.xltm,.csv,.pdf" required>
+            <span id="selectedFileName" class="selected-file">Файл не выбран</span>
+        </label>
+
+        <button type="submit" class="button">Импортировать</button>
+    </form>
+
+    <div class="help-box">
+        <p>Поддерживаются структурированные DOCX, XLSX, CSV и PDF с извлекаемым текстовым слоем. Сканированные PDF без текстового слоя будут отклонены с понятным сообщением.</p>
+    </div>
+</section>
+{% endblock %}

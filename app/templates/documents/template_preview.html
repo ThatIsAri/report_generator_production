@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Предпросмотр шаблона{% endblock %}
+
+{% block content %}
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h2>Предварительный просмотр</h2>
+            <p class="muted">PDF будет сформирован на основе финальных значений, сохраненных после проверки.</p>
+        </div>
+        {% if latest_document %}
+            <a class="button secondary" href="{{ url_for('documents.open_generated_pdf', document_id=latest_document.id) }}" target="_blank">
+                Открыть PDF
+            </a>
+        {% endif %}
+    </div>
+
+    <div class="template-summary">
+        <p><strong>Выбранный шаблон:</strong> {{ template_info.title }}</p>
+        <p>{{ template_info.description }}</p>
+    </div>
+
+    <h3>Стандартные поля</h3>
+    <table class="light-table">
+        <thead>
+            <tr>
+                <th>Поле</th>
+                <th>Значение</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in standard_rows %}
+                <tr>
+                    <td>{{ row.label }}</td>
+                    <td class="value-cell">{{ row.final_value if row.final_value else "—" }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if additional_rows %}
+        <h3>Дополнительные поля шаблона</h3>
+        <table class="light-table">
+            <thead>
+                <tr>
+                    <th>Поле</th>
+                    <th>Источник</th>
+                    <th>Значение</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in additional_rows %}
+                    <tr>
+                        <td>{{ row.label }}</td>
+                        <td>{{ row.source_type if row.source_type else "—" }}</td>
+                        <td class="value-cell">{{ row.final_value if row.final_value else "—" }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+
+    <h3>Визуальный предпросмотр отчета</h3>
+    <div class="preview-box">
+        <h2>{{ standard_rows[0].final_value if standard_rows else "Отчет" }}</h2>
+        {% for row in standard_rows[1:] %}
+            <p><strong>{{ row.label }}:</strong> {{ row.final_value }}</p>
+        {% endfor %}
+
+        {% for row in additional_rows %}
+            {% if row.final_value %}
+                <h3>{{ row.label }}</h3>
+                <p class="text-block">{{ row.final_value }}</p>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    <div class="actions">
+        <a class="button secondary" href="{{ url_for('documents.select_template', import_id=imported_data.id) }}">Выбрать другой шаблон</a>
+        <form method="post" action="{{ url_for('documents.generate_imported_document', import_id=imported_data.id, template_key=template_key) }}" data-confirm-generate="true">
+            <button type="submit" class="button">Сформировать PDF</button>
+        </form>
+    </div>
+</section>
+{% endblock %}

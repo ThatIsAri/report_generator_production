@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Создание статус-отчета{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h2>Создание статус-отчета по проекту</h2>
+
+    <form method="post" class="form">
+        <label>
+            Название проекта
+            <input type="text" name="project_name" required>
+        </label>
+
+        <label>
+            Дата отчета
+            <input type="date" name="report_date" required>
+        </label>
+
+        <label>
+            Ответственный менеджер
+            <input type="text" name="manager_name" required>
+        </label>
+
+        <label>
+            Текущий статус проекта
+            <select name="project_status" required>
+                <option value="В работе">В работе</option>
+                <option value="Завершен">Завершен</option>
+                <option value="Требует внимания">Требует внимания</option>
+                <option value="Приостановлен">Приостановлен</option>
+            </select>
+        </label>
+
+        <label>
+            Выполненные работы
+            <textarea name="completed_work" rows="6" required></textarea>
+        </label>
+
+        <label>
+            Текущие риски
+            <textarea name="current_risks" rows="4"></textarea>
+        </label>
+
+        <label>
+            План дальнейших действий
+            <textarea name="next_steps" rows="5" required></textarea>
+        </label>
+
+        <button type="submit" class="button">Сохранить отчет</button>
+    </form>
+</section>
+{% endblock %}

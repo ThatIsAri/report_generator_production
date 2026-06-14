@@ -1,0 +1,78 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Flask/runtime files
+instance/
+*.log
+*.pid
+
+# Local databases and dumps
+*.sqlite
+*.sqlite3
+*.db
+*.sql.gz
+*.dump
+
+# Generated/runtime storage
+storage/*
+!storage/.gitkeep
+!storage/generated/
+storage/generated/*
+!storage/generated/.gitkeep
+!storage/temp_imports/
+storage/temp_imports/*
+!storage/temp_imports/.gitkeep
+!storage/tex/
+storage/tex/*
+!storage/tex/.gitkeep
+!storage/uploads/
+storage/uploads/*
+!storage/uploads/.gitkeep
+
+# User uploads exposed via static
+app/static/uploads/*
+!app/static/uploads/.gitkeep
+!app/static/uploads/avatars/
+app/static/uploads/avatars/*
+!app/static/uploads/avatars/.gitkeep
+
+# Build/export artifacts
+dist/
+build/
+*.egg-info/
+*.pdf
+*.docx
+*.xlsx
+*.xlsm
+*.csv
+*.zip
+
+# Keep source template files even though generated documents are ignored
+!latex_templates/**/*.tex.j2
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo

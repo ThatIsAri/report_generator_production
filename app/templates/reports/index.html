@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Список отчетов{% endblock %}
+
+{% block content %}
+<section class="card">
+    <div class="card-header">
+        <h2>Список статус-отчетов</h2>
+        <a class="button" href="{{ url_for('reports.create_report') }}">Создать новый отчет</a>
+    </div>
+
+    {% if reports %}
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Проект</th>
+                    <th>Дата отчета</th>
+                    <th>Руководитель</th>
+                    <th>Статус</th>
+                    <th>PDF</th>
+                    <th>Действие</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for report in reports %}
+                    <tr>
+                        <td>{{ report.id }}</td>
+                        <td>{{ report.project_name }}</td>
+                        <td>{{ report.report_date.strftime('%d.%m.%Y') }}</td>
+                        <td>{{ report.manager_name }}</td>
+                        <td>{{ report.project_status }}</td>
+                        <td>
+                            {% if report.pdf_filename %}
+                                Есть
+                            {% else %}
+                                Нет
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('reports.view_report', report_id=report.id) }}">
+                                Открыть
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>Пока нет созданных отчетов.</p>
+    {% endif %}
+</section>
+{% endblock %}

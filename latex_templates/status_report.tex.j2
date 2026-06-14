@@ -1,0 +1,75 @@
+\documentclass[14pt,a4paper]{extarticle}
+
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setmainlanguage{russian}
+\setmainfont{Times New Roman}
+
+\usepackage{geometry}
+\geometry{
+    left=20mm,
+    right=10mm,
+    top=20mm,
+    bottom=20mm
+}
+
+\usepackage{setspace}
+\onehalfspacing
+
+\usepackage{indentfirst}
+\setlength{\parindent}{1.25cm}
+
+\usepackage{array}
+\usepackage{longtable}
+
+\begin{document}
+
+\begin{center}
+    \textbf{СТАТУС-ОТЧЕТ ПО ПРОЕКТУ}
+\end{center}
+
+\vspace{1cm}
+
+\noindent
+\textbf{Название проекта:} {{ report.project_name|latex }}
+
+\noindent
+\textbf{Дата отчета:} {{ report.report_date.strftime('%d.%m.%Y')|latex }}
+
+\noindent
+\textbf{Ответственный менеджер:} {{ report.manager_name|latex }}
+
+\noindent
+\textbf{Текущий статус проекта:} {{ report.project_status|latex }}
+
+\vspace{0.7cm}
+
+\noindent
+\textbf{1. Выполненные работы}
+
+{{ report.completed_work|latex }}
+
+\vspace{0.5cm}
+
+\noindent
+\textbf{2. Текущие риски}
+
+{% if report.current_risks %}
+{{ report.current_risks|latex }}
+{% else %}
+Риски не указаны.
+{% endif %}
+
+\vspace{0.5cm}
+
+\noindent
+\textbf{3. План дальнейших действий}
+
+{{ report.next_steps|latex }}
+
+\vspace{1cm}
+
+\noindent
+Дата формирования отчета: \today
+
+\end{document}

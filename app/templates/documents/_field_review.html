@@ -1,0 +1,30 @@
+<article class="{{ row.row_class }}">
+    <div class="field-review-header">
+        <div>
+            <h3>{{ row.label }}{% if row.required %}<span class="required-marker">*</span>{% endif %}</h3>
+            <p>{{ row.comment }}</p>
+        </div>
+        <span class="{{ row.badge_class }}">{{ row.badge_text }}</span>
+    </div>
+
+    <div class="form-grid">
+        <div class="soft-card">
+            <span class="field-caption">Исходное значение</span>
+            <div class="readonly-value">{{ row.original_value if row.original_value else "—" }}</div>
+        </div>
+
+        <div class="soft-card">
+            <span class="field-caption">Нормализованное значение</span>
+            <div class="readonly-value">{{ row.normalized_value if row.normalized_value else "—" }}</div>
+        </div>
+    </div>
+
+    <label class="final-field">
+        <span>Итоговое значение</span>
+        {% if row.input_type == "textarea" %}
+            <textarea name="field_{{ row.field_id }}" rows="5">{{ row.final_value }}</textarea>
+        {% else %}
+            <input type="text" name="field_{{ row.field_id }}" value="{{ row.final_value }}">
+        {% endif %}
+    </label>
+</article>

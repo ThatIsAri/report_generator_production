@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Вход в систему</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% if smartcaptcha_enabled %}
+        <script src="https://smartcaptcha.cloud.yandex.ru/captcha.js" defer></script>
+    {% endif %}
+</head>
+<body>
+<main class="auth-page">
+    <section class="auth-card">
+        <div class="auth-card-header">
+            <h1>Вход в систему</h1>
+            <p>Войдите, чтобы продолжить работу с отчетами и шаблонами.</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="auth-messages">
+                    {% for category, message in messages %}
+                        <div class="auth-message auth-message-{{ category if category in ['success', 'warning', 'error', 'danger'] else 'error' }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <form class="auth-form" method="post" action="{{ url_for('auth.login', next=request.args.get('next', '')) }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <label>
+                <span>Логин или почта</span>
+                <input type="text" name="login_or_email" value="{{ login_or_email or '' }}" placeholder="Логин или почта" autocomplete="username" required>
+            </label>
+            <label>
+                <span>Пароль</span>
+                <input type="password" name="password" placeholder="Пароль" autocomplete="current-password" required>
+            </label>
+            {% if smartcaptcha_enabled %}
+                <div class="auth-captcha">
+                    <div id="login-captcha-container" class="smart-captcha" data-sitekey="{{ smartcaptcha_site_key }}" style="height: 100px"></div>
+                </div>
+            {% endif %}
+            <button class="auth-primary-button" type="submit">Войти</button>
+        </form>
+
+        <div class="auth-secondary-actions">
+            <a href="{{ url_for('auth.forgot_password') }}">Забыли пароль?</a>
+            <a href="{{ url_for('auth.register') }}">Регистрация</a>
+        </div>
+    </section>
+</main>
+</body>
+</html>

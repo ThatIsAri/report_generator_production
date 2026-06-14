@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Предварительный просмотр отчета{% endblock %}
+
+{% block content %}
+<div
+    class="compose-preview-page"
+    data-draft-save-root
+    data-draft-save-mode="preview"
+    data-draft-save-url="{{ url_for('reports.save_draft', draft_id=draft.id) }}"
+>
+    <div class="draft-top-actions preview-draft-actions">
+        <form method="post" action="{{ url_for('reports.save_draft', draft_id=draft.id) }}" class="preview-back-form">
+            <button class="floating-preview-button" type="submit">← Назад</button>
+        </form>
+        <button class="draft-save-button is-saved" type="button" data-draft-save-button disabled title="Сохранено" aria-label="Сохранено">
+            <svg viewBox="0 0 32 32" aria-hidden="true">
+                <path class="draft-save-disk" d="M7 5h12l3 3v15H6V5h1Z"></path>
+                <path class="draft-save-slot" d="M10 5v7h8V5"></path>
+                <path class="draft-save-line" d="M10 19h8"></path>
+                <g class="draft-save-arrow-badge">
+                    <circle class="draft-save-badge-bg" cx="23.5" cy="23.5" r="6"></circle>
+                    <path class="draft-save-badge-icon" d="M26.1 22a3.5 3.5 0 1 0 .1 3.3"></path>
+                    <path class="draft-save-badge-icon" d="M26.2 19.6v3h-3"></path>
+                </g>
+                <g class="draft-save-check-badge">
+                    <circle class="draft-save-badge-bg" cx="23.5" cy="23.5" r="6"></circle>
+                    <path class="draft-save-badge-icon" d="M20.6 23.4l2 2l4-4.4"></path>
+                </g>
+            </svg>
+        </button>
+    </div>
+    <div class="draft-save-status preview-draft-status is-saved" data-draft-save-status>Сохранено</div>
+
+    <div class="workflow-steps preview-workflow-steps" data-active-step="2">
+        <div class="workflow-step">
+            <div class="workflow-step-circle">1</div>
+            <div class="workflow-step-label">Создание</div>
+        </div>
+        <div class="workflow-step is-active">
+            <div class="workflow-step-circle">2</div>
+            <div class="workflow-step-label">Предпросмотр</div>
+        </div>
+        <div class="workflow-step">
+            <div class="workflow-step-circle">3</div>
+            <div class="workflow-step-label">Редактирование</div>
+        </div>
+        <div class="workflow-step-description">
+            Быстро отредактируйте полученные данные.
+        </div>
+    </div>
+
+    {% if blocks %}
+        <nav class="block-navigation" data-block-navigation aria-label="Навигация по блокам">
+            <div class="block-navigation-list" data-block-navigation-list>
+                {% for block in blocks %}
+                    <button
+                        class="block-navigation-item block-color-{{ block.color_index }}"
+                        type="button"
+                        data-nav-block-id="{{ block.id }}"
+                    >
+                        <span class="block-navigation-icon">{{ block.icon }}</span>
+                        <span class="block-navigation-text">{{ block.nav_text }}</span>
+                    </button>
+                {% endfor %}
+            </div>
+        </nav>
+    {% endif %}
+
+    <aside class="preview-side-panels" aria-label="Будущие инструменты">
+        <button type="button" aria-label="Панель структуры"></button>
+        <button type="button" aria-label="Панель настроек"></button>
+    </aside>
+
+    <div class="preview-pages" data-preview-pages-root>
+        <section class="report-preview-page title-preview-page">
+            <div class="preview-title-kicker">Титульный лист</div>
+            <h1>{{ draft.report_title }}</h1>
+            <dl class="preview-title-meta">
+                <div>
+                    <dt>Дата отчета</dt>
+                    <dd>{{ draft.report_date.strftime('%d.%m.%Y') }}</dd>
+                </div>
+                <div>
+                    <dt>Тег</dt>
+                    <dd>{{ draft.tag or 'Не указан' }}</dd>
+                </div>
+                <div>
+                    <dt>Шаблон</dt>
+                    <dd>{{ draft.template_title }}</dd>
+                </div>
+            </dl>
+        </section>
+
+        {% if blocks %}
+            <div
+                class="preview-content-pages"
+                data-preview-pages
+                data-reorder-url="{{ url_for('reports.reorder_imported_blocks', draft_id=draft.id).replace('/reports/', '/api/reports/').replace('/blocks/reorder', '/blocks/order') }}"
+            ></div>
+
+            <div class="preview-block-source" data-preview-block-source hidden>
+                {% for block in blocks %}
+                    <article
+                        class="preview-block-row"
+                        draggable="true"
+                        data-imported-block
+                        data-block-id="{{ block.id }}"
+                        data-block-type="{{ block.block_type }}"
+                        data-nav-text="{{ block.nav_text }}"
+                        data-block-icon="{{ block.icon }}"
+                        data-delete-url="{{ url_for('reports.delete_imported_block', block_id=block.id).replace('/reports/', '/api/reports/') }}"
+                        data-restore-url="{{ url_for('reports.restore_imported_block', block_id=block.id).replace('/reports/', '/api/reports/') }}"
+                    >
+                        <div class="preview-block-service">
+                            <button class="preview-block-drag" type="button" aria-label="Переместить блок" draggable="true" data-block-drag-handle>
+                                <span aria-hidden="true">⋮⋮</span>
+                            </button>
+                            <button
+                                class="preview-block-delete"
+                                type="button"
+                                data-delete-block
+                                aria-label="Удалить блок"
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <div class="imported-block block-color-{{ block.color_index }}">
+                            <div class="imported-block-meta">
+                                <span>{{ block.block_type }}</span>
+                                {% if block.source_file_name %}
+                                    <span>{{ block.source_file_name }}</span>
+                                {% endif %}
+                            </div>
+
+                            {% if block["rows"] %}
+                                <div class="imported-table-wrap">
+                                    <table class="imported-table">
+                                        {% for row in block["rows"] %}
+                                            <tr>
+                                                {% for cell in row %}
+                                                    <td>{{ cell }}</td>
+                                                {% endfor %}
+                                            </tr>
+                                        {% endfor %}
+                                    </table>
+                                </div>
+                            {% elif block["items"] %}
+                                <ul>
+                                    {% for item in block["items"] %}
+                                        <li>{{ item }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p>{{ block["content_text"] }}</p>
+                            {% endif %}
+                        </div>
+                        </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <section class="report-preview-page">
+                <div class="preview-title-kicker">Импортированные данные</div>
+                <div class="empty-preview-block">
+                    Импортированные данные не добавлены. Отчет можно продолжить как ручной черновик.
+                </div>
+            </section>
+        {% endif %}
+    </div>
+
+    <a class="preview-confirm-button" href="{{ url_for('reports.report_editor', draft_id=draft.id) }}">Подтвердить</a>
+</div>
+{% endblock %}

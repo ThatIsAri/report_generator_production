@@ -1,0 +1,66 @@
+\documentclass[14pt,a4paper]{extarticle}
+
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setmainlanguage{russian}
+\setmainfont{Times New Roman}
+
+\usepackage{geometry}
+\geometry{
+    left=20mm,
+    right=10mm,
+    top=20mm,
+    bottom=20mm
+}
+
+\usepackage{setspace}
+\onehalfspacing
+
+\usepackage{indentfirst}
+\setlength{\parindent}{1.25cm}
+
+\begin{document}
+
+\begin{center}
+    \textbf{ {{ fields.get("report_title", "Отчет о выполненных работах")|latex }} }
+\end{center}
+
+\vspace{0.8cm}
+
+\noindent
+\textbf{Автор:} {{ fields.get("report_author", "")|latex }}
+
+\noindent
+\textbf{Дата отчета:} {{ fields.get("report_date", "")|latex }}
+
+{% if fields.get("period") %}
+\noindent
+\textbf{Период:} {{ fields.get("period")|latex }}
+{% endif %}
+
+\vspace{0.7cm}
+
+{% if fields.get("completed_work") %}
+\noindent
+\textbf{Выполненные работы}
+
+{{ fields.get("completed_work")|latex }}
+\vspace{0.5cm}
+{% endif %}
+
+{% if fields.get("result_description") %}
+\noindent
+\textbf{Результат}
+
+{{ fields.get("result_description")|latex }}
+\vspace{0.5cm}
+{% endif %}
+
+{% if fields.get("notes") %}
+\noindent
+\textbf{Примечания}
+
+{{ fields.get("notes")|latex }}
+{% endif %}
+
+\end{document}

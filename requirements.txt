@@ -1,0 +1,14 @@
+Flask
+Flask-SQLAlchemy
+PyMySQL
+python-dotenv
+Jinja2
+python-docx
+pypdf
+Werkzeug
+openpyxl
+pdfplumber
+requests
+pytest
+beautifulsoup4
+reportlab

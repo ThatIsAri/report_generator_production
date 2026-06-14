@@ -1,0 +1,403 @@
+{% extends "base.html" %}
+
+{% block title %}Редактор шаблона{% endblock %}
+
+{% block content %}
+<div
+    class="editor-page template-editor-page"
+    data-template-editor-root
+    data-template-id="{{ template.id }}"
+    data-template-api-url="{{ url_for('templates.api_get_template', template_id=template.id) }}"
+    data-template-save-url="{{ url_for('templates.api_update_template', template_id=template.id) }}"
+    >
+    <textarea class="template-content-json-source" hidden data-template-content-json>{{ template.content_json or '' }}</textarea>
+
+    <div class="editor-toolbar template-editor-toolbar" aria-label="Панель форматирования шаблона" data-template-toolbar>
+        <button class="editor-icon-button" type="button" data-editor-undo title="Вернуть" aria-label="Вернуть">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 7H4v5"></path>
+                <path d="M4 12c2.3-3.3 5.2-5 8.6-5A7.4 7.4 0 1 1 7 19"></path>
+            </svg>
+        </button>
+        <button class="editor-icon-button" type="button" data-editor-redo title="Отменить" aria-label="Отменить">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M15 7h5v5"></path>
+                <path d="M20 12c-2.3-3.3-5.2-5-8.6-5A7.4 7.4 0 1 0 17 19"></path>
+            </svg>
+        </button>
+        <button class="editor-icon-button" type="button" data-editor-clear-styles title="Очистить стили" aria-label="Очистить стили">
+            <svg class="clear-styles-icon" viewBox="0 0 28 28" aria-hidden="true">
+                <path class="clear-drop-shape" d="M10.5 4.5s7.2 7.4 7.2 12.1a7.2 7.2 0 1 1-14.4 0c0-4.7 7.2-12.1 7.2-12.1Z"></path>
+                <path class="clear-drop-cross" d="M18 3.5l7 7"></path>
+                <path class="clear-drop-cross" d="M25 3.5l-7 7"></path>
+            </svg>
+        </button>
+
+        <button type="button" data-editor-command="bold"><strong>B</strong></button>
+        <button type="button" data-editor-command="italic"><em>I</em></button>
+        <button type="button" data-editor-command="underline"><u>U</u></button>
+
+        <button class="editor-icon-button" type="button" data-editor-align="justifyLeft" title="Выровнять по левому краю" aria-label="Выровнять по левому краю">
+            <svg class="align-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16"></path><path d="M4 12h11"></path><path d="M4 18h7"></path></svg>
+        </button>
+        <button class="editor-icon-button" type="button" data-editor-align="justifyCenter" title="Выровнять по центру" aria-label="Выровнять по центру">
+            <svg class="align-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16"></path><path d="M10 12h4"></path><path d="M4 18h16"></path></svg>
+        </button>
+        <button class="editor-icon-button" type="button" data-editor-align="justifyRight" title="Выровнять по правому краю" aria-label="Выровнять по правому краю">
+            <svg class="align-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16"></path><path d="M9 12h11"></path><path d="M13 18h7"></path></svg>
+        </button>
+        <button class="editor-icon-button" type="button" data-editor-align="justifyFull" title="Выровнять по ширине" aria-label="Выровнять по ширине">
+            <svg class="align-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16"></path><path d="M4 12h16"></path><path d="M4 18h16"></path></svg>
+        </button>
+
+        <label>
+            <span>Размер</span>
+            <select data-editor-font-size>
+                {% for size in range(1, 29) %}
+                    <option value="{{ size }}" {% if size == 12 %}selected{% endif %}>{{ size }} pt</option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <label>
+            <span>Шрифт</span>
+            <select data-editor-font-name>
+                <option value="Times New Roman">Times New Roman</option>
+                <option value="Arial">Arial</option>
+                <option value="Inter">Inter</option>
+            </select>
+        </label>
+
+        <div class="table-picker-wrap">
+            <button type="button" data-editor-table-toggle>Таблица</button>
+            <div class="table-size-popover" data-table-size-popover hidden>
+                <div class="table-size-label" data-table-size-label>1 x 1</div>
+                <div class="table-size-grid" data-table-size-grid>
+                    {% for row in range(1, 11) %}
+                        {% for col in range(1, 11) %}
+                            <button type="button" data-table-cell data-rows="{{ row }}" data-cols="{{ col }}" aria-label="{{ row }} x {{ col }}"></button>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <label>
+            <span>Текст</span>
+            <input type="color" value="#111827" data-editor-fore-color>
+        </label>
+
+        <label data-editor-back-control>
+            <span>Фон</span>
+            <button class="editor-color-swatch" type="button" data-editor-back-apply title="Применить текущий фон" aria-label="Применить текущий фон">
+                <span data-editor-back-swatch></span>
+            </button>
+            <input type="color" value="#fff3bf" data-editor-back-color>
+            <button class="editor-icon-button editor-transparent-button" type="button" data-editor-back-transparent title="Прозрачный фон" aria-label="Прозрачный фон">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14v10H5Z"></path><path d="M5 17L19 7"></path></svg>
+            </button>
+        </label>
+
+        <div class="template-toolbar-title-zone">
+            <input class="template-toolbar-title-input" type="text" value="{{ template.title }}" data-template-title aria-label="Название шаблона" placeholder="Название шаблона">
+        </div>
+
+        <div class="template-toolbar-meta-fields" aria-label="Свойства шаблона">
+            <label class="template-toolbar-meta-row">
+                <span class="template-toolbar-meta-label">Тип</span>
+                <select class="template-toolbar-type-select" data-template-type aria-label="Тип шаблона">
+                    {% for type_name in template_types %}
+                        <option value="{{ type_name }}" {% if (template.template_type or 'Универсальный') == type_name %}selected{% endif %}>{{ type_name }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label class="template-toolbar-meta-row">
+                <span class="template-toolbar-meta-label">Тег</span>
+                <input class="template-toolbar-tag-input" type="text" value="{{ template.tag or '' }}" data-template-tag aria-label="Тег шаблона" placeholder="Тег">
+            </label>
+            <div class="draft-save-status editor-draft-status template-save-status is-saved" data-template-save-status>Сохранено</div>
+        </div>
+    </div>
+
+    <main class="template-editor-layout">
+        <aside class="template-editor-left">
+            <div class="draft-top-actions editor-draft-actions template-editor-actions">
+                <a class="floating-preview-button editor-back-button" href="{{ url_for('reports.index', mode='templates') }}">← Назад</a>
+                <button class="draft-save-button is-saved" type="button" data-template-save-button disabled title="Сохранено" aria-label="Сохранено">
+                    <svg viewBox="0 0 32 32" aria-hidden="true">
+                        <path class="draft-save-disk" d="M7 5h12l3 3v15H6V5h1Z"></path>
+                        <path class="draft-save-slot" d="M10 5v7h8V5"></path>
+                        <path class="draft-save-line" d="M10 19h8"></path>
+                        <g class="draft-save-arrow-badge">
+                            <circle class="draft-save-badge-bg" cx="23.5" cy="23.5" r="6"></circle>
+                            <path class="draft-save-badge-icon" d="M26.1 22a3.5 3.5 0 1 0 .1 3.3"></path>
+                            <path class="draft-save-badge-icon" d="M26.2 19.6v3h-3"></path>
+                        </g>
+                        <g class="draft-save-check-badge">
+                            <circle class="draft-save-badge-bg" cx="23.5" cy="23.5" r="6"></circle>
+                            <path class="draft-save-badge-icon" d="M20.6 23.4l2 2l4-4.4"></path>
+                        </g>
+                    </svg>
+                </button>
+            </div>
+
+            <section class="template-properties-card template-properties-panel" data-template-properties-panel>
+            <section class="template-properties">
+                <h2>Свойства</h2>
+                <div class="template-property-actions">
+                    <button class="template-lock-toggle" type="button" data-template-lock-toggle aria-pressed="false" title="Заблокировать для редактирования">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M7 10V8a5 5 0 0 1 10 0v2"></path>
+                            <path d="M6 10h12v10H6Z"></path>
+                            <path d="M12 14v3"></path>
+                        </svg>
+                        <span class="sr-only">Заблокировать для редактирования</span>
+                    </button>
+                    <button class="template-hand-toggle" type="button" data-template-hand-toggle aria-pressed="false" title="Рука">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M8 12V6.5a1.5 1.5 0 0 1 3 0V12"></path>
+                            <path d="M11 11V5.5a1.5 1.5 0 0 1 3 0V12"></path>
+                            <path d="M14 11V7a1.5 1.5 0 0 1 3 0v6"></path>
+                            <path d="M17 12.5l.8-.8a1.5 1.5 0 0 1 2.2 2l-3.5 4.3A6 6 0 0 1 11.8 20H10a5 5 0 0 1-4.6-3l-1.2-2.8a1.4 1.4 0 0 1 2.5-1.2L8 15"></path>
+                        </svg>
+                        <span class="sr-only">Рука</span>
+                    </button>
+                </div>
+            </section>
+            </section>
+        </aside>
+
+        <section class="template-editor-main">
+            <div class="template-editor-workspace">
+            <div class="template-document-column template-edit-column">
+                <div class="template-sheet-label">Редактирование</div>
+                <div class="editor-ruler template-editor-ruler" data-template-ruler>
+                    <div class="ruler-scale" aria-hidden="true">
+                        {% for tick in range(0, 17) %}
+                            <span style="left: {{ tick * 6.25 }}%">{{ tick }}</span>
+                        {% endfor %}
+                    </div>
+                    <button class="ruler-marker page-margin left-margin" type="button" data-ruler-handle="page-left" aria-label="Левый общий отступ"></button>
+                    <button class="ruler-marker page-margin right-margin" type="button" data-ruler-handle="page-right" aria-label="Правый общий отступ"></button>
+                    <button class="ruler-marker paragraph-indent" type="button" data-ruler-handle="paragraph" aria-label="Отступ абзаца"></button>
+                    <button class="ruler-marker line-indent" type="button" data-ruler-handle="line" aria-label="Отступ строки"></button>
+                    <div class="ruler-value-bubble" data-ruler-bubble>0 см</div>
+                </div>
+                <section class="editor-canvas template-editor-canvas template-pages-list template-edit-pages" data-template-edit-pages>
+                    <article class="editable-page template-page-sheet template-edit-page" data-template-edit-page data-template-page="1">
+                        <div class="template-page-content template-editable-page" contenteditable="true" spellcheck="true" data-template-editable-page data-template-page-content>{{ template_content|safe }}</div>
+                        <div class="template-page-number" aria-hidden="true">1</div>
+                    </article>
+                </section>
+            </div>
+
+            <div class="template-document-column template-preview-column">
+                <div class="template-sheet-label">Предпросмотр</div>
+                <div class="template-ruler-spacer" aria-hidden="true"></div>
+                <section class="template-pages-list template-preview-pages" aria-readonly="true" data-template-inline-preview data-template-preview-pages>
+                    <article class="editable-page template-page-sheet template-preview-page" data-template-preview-page data-template-page="1">
+                        <div class="template-page-content template-inline-preview-page"></div>
+                        <div class="template-page-number" aria-hidden="true">1</div>
+                    </article>
+                </section>
+            </div>
+            </div>
+        </section>
+
+        <aside class="template-editor-right">
+            <section class="template-parameters-card template-fields-panel template-placeholder-panel" data-template-fields-panel>
+                <h2>Чипы</h2>
+                <input class="template-field-search" type="search" placeholder="Поиск чипа" data-template-field-search>
+                <button class="template-add-chip-button" type="button" data-template-add-chip>
+                    <span class="template-add-chip-plus" aria-hidden="true">+</span>
+                    <span>Добавить новый чип</span>
+                </button>
+
+                <div class="template-placeholder-group is-open template-favorites-group" data-placeholder-group data-parameter-group="favorite" data-default-open="true">
+                    <button class="template-parameter-group-toggle" type="button" data-parameter-group-toggle aria-expanded="true">
+                        <span>Избранное</span>
+                        <span class="template-parameter-chevron" aria-hidden="true">⌄</span>
+                    </button>
+                    <div class="template-parameter-group-body" data-parameter-group-body>
+                        <div class="template-placeholder-buttons" data-template-favorites-list>
+                            <div class="template-favorites-empty">Пока нет избранных чипов</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="template-placeholder-group is-open" data-placeholder-group data-parameter-group="basic" data-default-open="true">
+                    <button class="template-parameter-group-toggle" type="button" data-parameter-group-toggle aria-expanded="true">
+                        <span>Основные</span>
+                        <span class="template-parameter-chevron" aria-hidden="true">⌄</span>
+                    </button>
+                    <div class="template-parameter-group-body" data-parameter-group-body>
+                        <div class="template-placeholder-buttons">
+                            <button type="button" draggable="true" data-placeholder-field="report_title" data-placeholder-label="Название отчета">Название отчета</button>
+                            <button type="button" draggable="true" data-placeholder-field="author" data-placeholder-label="Автор">Автор</button>
+                            <button type="button" draggable="true" data-placeholder-field="report_date" data-placeholder-label="Дата отчета">Дата отчета</button>
+                            <button type="button" draggable="true" data-placeholder-field="tag" data-placeholder-label="Тег">Тег</button>
+                            <button type="button" draggable="true" data-placeholder-field="report_type" data-placeholder-label="Тип отчета">Тип отчета</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="template-placeholder-group is-open" data-placeholder-group data-parameter-group="imported" data-default-open="true">
+                    <button class="template-parameter-group-toggle" type="button" data-parameter-group-toggle aria-expanded="true">
+                        <span>Импортированные</span>
+                        <span class="template-parameter-chevron" aria-hidden="true">⌄</span>
+                    </button>
+                    <div class="template-parameter-group-body" data-parameter-group-body>
+                        <div class="template-placeholder-buttons">
+                            <button type="button" draggable="true" data-placeholder-field="imported_paragraphs" data-placeholder-label="Абзацы из файла">Абзацы из файла</button>
+                            <button type="button" draggable="true" data-placeholder-field="imported_tables" data-placeholder-label="Таблицы из файла">Таблицы из файла</button>
+                            <button type="button" draggable="true" data-placeholder-field="imported_headings" data-placeholder-label="Заголовки из файла">Заголовки из файла</button>
+                            <button type="button" draggable="true" data-placeholder-field="imported_lists" data-placeholder-label="Списки из файла">Списки из файла</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="template-placeholder-group is-open" data-placeholder-group data-parameter-group="system" data-default-open="true">
+                    <button class="template-parameter-group-toggle" type="button" data-parameter-group-toggle aria-expanded="true">
+                        <span>Системные</span>
+                        <span class="template-parameter-chevron" aria-hidden="true">⌄</span>
+                    </button>
+                    <div class="template-parameter-group-body" data-parameter-group-body>
+                        <div class="template-placeholder-buttons">
+                            <button type="button" draggable="true" data-placeholder-field="generated_at" data-placeholder-label="Дата формирования">Дата формирования</button>
+                            <button type="button" draggable="true" data-placeholder-field="page_number" data-placeholder-label="Номер страницы">Номер страницы</button>
+                            <button type="button" draggable="true" data-placeholder-field="template_title" data-placeholder-label="Название шаблона">Название шаблона</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="template-placeholder-group" data-placeholder-group data-parameter-group="graphics" data-default-open="false">
+                    <button class="template-parameter-group-toggle" type="button" data-parameter-group-toggle aria-expanded="false">
+                        <span>Графика</span>
+                        <span class="template-parameter-chevron" aria-hidden="true">⌄</span>
+                    </button>
+                    <div class="template-parameter-group-body" data-parameter-group-body>
+                        <div class="template-placeholder-buttons">
+                            <button type="button" draggable="true" data-placeholder-field="image" data-placeholder-label="Изображение">Изображение</button>
+                            <button type="button" draggable="true" data-placeholder-field="scheme" data-placeholder-label="Схема">Схема</button>
+                            <button type="button" draggable="true" data-placeholder-field="chart" data-placeholder-label="График">График</button>
+                            <button type="button" draggable="true" data-placeholder-field="diagram" data-placeholder-label="Диаграмма">Диаграмма</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="template-placeholder-group" data-placeholder-group data-parameter-group="data" data-default-open="false">
+                    <button class="template-parameter-group-toggle" type="button" data-parameter-group-toggle aria-expanded="false">
+                        <span>Данные</span>
+                        <span class="template-parameter-chevron" aria-hidden="true">⌄</span>
+                    </button>
+                    <div class="template-parameter-group-body" data-parameter-group-body>
+                        <div class="template-placeholder-buttons">
+                            <button type="button" draggable="true" data-placeholder-field="data_table" data-placeholder-label="Таблица">Таблица</button>
+                            <button type="button" draggable="true" data-placeholder-field="formula" data-placeholder-label="Формула">Формула</button>
+                            <button type="button" draggable="true" data-placeholder-field="summary_block" data-placeholder-label="Сводный блок">Сводный блок</button>
+                            <button type="button" draggable="true" data-placeholder-field="value_list" data-placeholder-label="Список значений">Список значений</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="template-placeholder-group" data-placeholder-group data-parameter-group="utils" data-default-open="false">
+                    <button class="template-parameter-group-toggle" type="button" data-parameter-group-toggle aria-expanded="false">
+                        <span>Утилиты</span>
+                        <span class="template-parameter-chevron" aria-hidden="true">⌄</span>
+                    </button>
+                    <div class="template-parameter-group-body" data-parameter-group-body>
+                        <div class="template-placeholder-buttons">
+                            <button type="button" draggable="true" data-placeholder-field="indent" data-placeholder-label="Отступ">Отступ</button>
+                            <button type="button" draggable="true" data-placeholder-field="page_break" data-placeholder-label="Разрыв страницы">Разрыв страницы</button>
+                            <button type="button" draggable="true" data-placeholder-field="section_number" data-placeholder-label="Номер раздела">Номер раздела</button>
+                            <button type="button" draggable="true" data-placeholder-field="custom_placeholder" data-placeholder-label="Пользовательский плейсхолдер">Пользовательский плейсхолдер</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </aside>
+    </main>
+
+    <div class="modal-backdrop template-preview-backdrop" data-template-preview-modal aria-hidden="true">
+        <div class="modal template-preview-modal">
+            <div class="modal-header">
+                <div>
+                    <h2>Предпросмотр шаблона</h2>
+                    <p>Тестовые данные подставлены вместо полей.</p>
+                </div>
+                <button type="button" class="modal-close" data-template-preview-close>×</button>
+            </div>
+            <div class="template-preview-document-wrap">
+                <section class="template-preview-document" data-template-preview-document></section>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="button" data-template-preview-close>Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-backdrop template-chip-settings-backdrop" data-template-chip-modal aria-hidden="true">
+        <div class="modal template-chip-settings-modal" role="dialog" aria-modal="true" aria-labelledby="template-chip-settings-title">
+            <div class="modal-header">
+                <div>
+                    <h2 id="template-chip-settings-title">Настройка чипа</h2>
+                    <p>Задайте название и основу чипа.</p>
+                </div>
+                <button type="button" class="modal-close" data-template-chip-cancel>×</button>
+            </div>
+
+            <div class="template-chip-settings-body">
+                <label class="form-field template-chip-name-field">
+                    <span>Название</span>
+                    <input type="text" placeholder="Название чипа" data-template-chip-name>
+                </label>
+
+                <div class="form-field template-chip-base-field">
+                    <span>На основании</span>
+                    <div class="template-chip-base-select" data-template-chip-base-select>
+                        <button class="template-chip-base-toggle" type="button" data-template-chip-base-toggle>
+                            <span data-template-chip-base-value>Выберите чип</span>
+                            <span aria-hidden="true">⌄</span>
+                        </button>
+                        <div class="template-chip-base-dropdown" data-template-chip-base-dropdown hidden>
+                            <input type="search" placeholder="Поиск чипа" data-template-chip-base-search>
+                            <div class="template-chip-base-options" data-template-chip-base-options></div>
+                        </div>
+                    </div>
+                </div>
+
+                <section class="template-chip-latex-editor">
+                    <div class="template-chip-latex-header">
+                        <h3>LaTeX-разметка чипа</h3>
+                        <p>Запишите разметку, которая будет использоваться при LaTeX-выводе шаблона.</p>
+                    </div>
+                    <textarea
+                        data-template-chip-latex
+                        placeholder="Например: \textbf{ {{ value }} }"
+                        spellcheck="false"
+                    ></textarea>
+                </section>
+            </div>
+
+            <div class="modal-footer template-chip-settings-footer">
+                <div class="template-chip-category-wrap template-chip-category-picker" data-template-chip-category-picker>
+                    <button type="button" class="button template-chip-category-button" data-template-chip-category-toggle>
+                        <span data-template-chip-category-label>Сохранить в категорию</span>
+                    </button>
+                    <input class="template-chip-category-search-input" type="search" placeholder="Поиск категории..." data-template-chip-category-search aria-label="Поиск категории">
+                    <div class="template-chip-category-menu" data-template-chip-category-menu hidden></div>
+                </div>
+                <div class="template-chip-settings-actions">
+                    <button type="button" class="button" data-template-chip-cancel>Отмена</button>
+                    <button type="button" class="button primary-button" data-template-chip-save>Сохранить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/document_editor_core.js') }}"></script>
+<script src="{{ url_for('static', filename='js/template_editor.js') }}"></script>
+{% endblock %}

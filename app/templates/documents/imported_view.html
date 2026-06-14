@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Проверка импортированных данных{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h2>Проверка импортированных данных</h2>
+        <p>Система извлекла базовые метаданные отчета и дополнительные поля по предполагаемому типу документа. Проверьте итоговые значения перед выбором шаблона.</p>
+    </div>
+</section>
+
+<section class="card">
+    <div class="meta-grid">
+        <p><strong>Файл:</strong> {{ imported_document.original_filename }}</p>
+        <p><strong>Статус импорта:</strong> {{ imported_document.import_status }}</p>
+        <p><strong>Статус проверки:</strong> {{ imported_data.verification_status }}</p>
+        <p><strong>Предполагаемый тип:</strong> {{ imported_document.detected_profile_title if imported_document.detected_profile_title else "—" }}</p>
+        <p><strong>Уверенность:</strong>
+            {% if imported_document.classification_confidence is not none %}
+                {{ (imported_document.classification_confidence * 100)|round|int }}%
+            {% else %}
+                —
+            {% endif %}
+        </p>
+        <p><strong>Дата импорта:</strong> {{ imported_document.created_at.strftime('%d.%m.%Y %H:%M') }}</p>
+    </div>
+
+    {% if imported_document.document_scan %}
+        <div class="scan-summary">
+            <span>Формат: {{ imported_document.document_scan.detected_format|upper }}</span>
+            <span>Страниц: {{ imported_document.document_scan.pages_count }}</span>
+            <span>Листов: {{ imported_document.document_scan.sheets_count }}</span>
+            <span>Абзацев: {{ imported_document.document_scan.paragraphs_count }}</span>
+            <span>Таблиц: {{ imported_document.document_scan.tables_count }}</span>
+            <span>Полей: {{ imported_document.document_scan.key_values_count }}</span>
+            <span>Разделов: {{ imported_document.document_scan.sections_count }}</span>
+        </div>
+
+        {% if imported_document.document_scan.warnings_text %}
+            <div class="message error">
+                {{ imported_document.document_scan.warnings_text }}
+            </div>
+        {% endif %}
+    {% endif %}
+
+    {% if imported_document.error_message %}
+        <div class="message error">
+            {{ imported_document.error_message }}
+        </div>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('documents.update_imported_document', import_id=imported_data.id) }}" class="review-form">
+        <h3>Стандартные поля отчета</h3>
+        <div class="review-list">
+            {% for row in standard_rows %}
+                {% include "documents/_field_review.html" %}
+            {% endfor %}
+        </div>
+
+        {% if additional_rows %}
+            <h3>Дополнительные поля выбранного типа</h3>
+            <div class="review-list">
+                {% for row in additional_rows %}
+                    {% include "documents/_field_review.html" %}
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="actions">
+            <button type="submit" name="action" value="save" class="button secondary">Сохранить изменения</button>
+            <button type="submit" name="action" value="save_and_continue" class="button">Сохранить и перейти к выбору шаблона</button>
+            <a class="button ghost" href="{{ url_for('documents.upload_document') }}">Загрузить другой документ</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

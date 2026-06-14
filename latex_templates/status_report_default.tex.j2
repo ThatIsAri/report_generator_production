@@ -1,0 +1,71 @@
+\documentclass[14pt,a4paper]{extarticle}
+
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setmainlanguage{russian}
+\setmainfont{Times New Roman}
+
+\usepackage{geometry}
+\geometry{
+    left=20mm,
+    right=10mm,
+    top=20mm,
+    bottom=20mm
+}
+
+\usepackage{setspace}
+\onehalfspacing
+
+\usepackage{indentfirst}
+\setlength{\parindent}{1.25cm}
+
+\begin{document}
+
+\begin{center}
+    \textbf{ {{ fields.get("report_title", "Статус-отчет")|latex }} }
+\end{center}
+
+\vspace{0.8cm}
+
+\noindent
+\textbf{Автор:} {{ fields.get("report_author", "")|latex }}
+
+\noindent
+\textbf{Дата отчета:} {{ fields.get("report_date", "")|latex }}
+
+{% if fields.get("project") %}
+\noindent
+\textbf{Проект:} {{ fields.get("project")|latex }}
+{% endif %}
+
+{% if fields.get("status") %}
+\noindent
+\textbf{Статус:} {{ fields.get("status")|latex }}
+{% endif %}
+
+\vspace{0.7cm}
+
+{% if fields.get("completed_work") %}
+\noindent
+\textbf{1. Выполненные работы}
+
+{{ fields.get("completed_work")|latex }}
+\vspace{0.5cm}
+{% endif %}
+
+{% if fields.get("risks") %}
+\noindent
+\textbf{2. Риски}
+
+{{ fields.get("risks")|latex }}
+\vspace{0.5cm}
+{% endif %}
+
+{% if fields.get("next_steps") %}
+\noindent
+\textbf{3. Дальнейшие действия}
+
+{{ fields.get("next_steps")|latex }}
+{% endif %}
+
+\end{document}

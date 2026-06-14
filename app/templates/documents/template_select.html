@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Выбор шаблона{% endblock %}
+
+{% block content %}
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h2>Выбор шаблона отчета</h2>
+            <p class="muted">Используются итоговые данные, сохраненные после ручной проверки.</p>
+        </div>
+    </div>
+
+    <div class="meta-grid">
+        <p><strong>Тип документа:</strong> {{ imported_document.detected_profile_title if imported_document.detected_profile_title else "Универсальный отчет" }}</p>
+        <p><strong>Уверенность:</strong>
+            {% if imported_document.classification_confidence is not none %}
+                {{ (imported_document.classification_confidence * 100)|round|int }}%
+            {% else %}
+                —
+            {% endif %}
+        </p>
+    </div>
+
+    <div class="template-list">
+        {% for template_key, template in templates.items() %}
+            <div class="template-row">
+                <div>
+                    <h3>{{ template.title }}</h3>
+                    <p>{{ template.description }}</p>
+                </div>
+                <a class="button" href="{{ url_for('documents.preview_template', import_id=imported_data.id, template_key=template_key) }}">
+                    Предпросмотр
+                </a>
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="actions">
+        <a class="button secondary" href="{{ url_for('documents.view_imported_document', import_id=imported_data.id) }}">Назад к данным</a>
+    </div>
+</section>
+{% endblock %}

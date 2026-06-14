@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Регистрация</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% if smartcaptcha_enabled %}
+        <script src="https://smartcaptcha.cloud.yandex.ru/captcha.js" defer></script>
+    {% endif %}
+</head>
+<body>
+<main class="auth-page">
+    <section class="auth-card">
+        <div class="auth-card-header">
+            <h1>Регистрация</h1>
+            <p>Создайте аккаунт. Первый пользователь автоматически станет администратором.</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="auth-messages">
+                    {% for category, message in messages %}
+                        <div class="auth-message auth-message-{{ category if category in ['success', 'warning', 'error', 'danger'] else 'error' }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <form class="auth-form" method="post" action="{{ url_for('auth.register') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <label>
+                <span>Логин</span>
+                <input type="text" name="username" value="{{ username or '' }}" placeholder="Логин" autocomplete="username" required>
+            </label>
+            <label>
+                <span>Почта</span>
+                <input type="email" name="email" value="{{ email or '' }}" placeholder="Почта" autocomplete="email" required>
+            </label>
+            <label>
+                <span>Пароль</span>
+                <input type="password" name="password" placeholder="Пароль" autocomplete="new-password" required>
+            </label>
+            <label>
+                <span>Повторите пароль</span>
+                <input type="password" name="password_repeat" placeholder="Повторите пароль" autocomplete="new-password" required>
+            </label>
+            {% if smartcaptcha_enabled %}
+                <div class="auth-captcha">
+                    <div id="register-captcha-container" class="smart-captcha" data-sitekey="{{ smartcaptcha_site_key }}" style="height: 100px"></div>
+                </div>
+            {% endif %}
+            <button class="auth-primary-button" type="submit">Зарегистрироваться</button>
+        </form>
+
+        <div class="auth-secondary-actions">
+            <a href="{{ url_for('auth.login') }}">Уже есть аккаунт? Войти</a>
+        </div>
+    </section>
+</main>
+</body>
+</html>

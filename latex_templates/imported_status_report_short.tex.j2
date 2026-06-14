@@ -1,0 +1,72 @@
+\documentclass[14pt,a4paper]{extarticle}
+
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setmainlanguage{russian}
+\setmainfont{Times New Roman}
+
+\usepackage{geometry}
+\geometry{
+    left=20mm,
+    right=10mm,
+    top=20mm,
+    bottom=20mm
+}
+
+\usepackage{setspace}
+\onehalfspacing
+
+\usepackage{indentfirst}
+\setlength{\parindent}{1.25cm}
+
+\begin{document}
+
+\begin{center}
+    \textbf{КРАТКИЙ СТАТУС-ОТЧЕТ}
+\end{center}
+
+\vspace{0.8cm}
+
+\noindent
+\textbf{Проект:} {{ data.project_name|latex }}
+
+\noindent
+\textbf{Период:} {{ data.report_period|latex }}
+
+\noindent
+\textbf{Ответственный:} {{ data.manager_name|latex }}
+
+\noindent
+\textbf{Текущее состояние:} {{ data.project_status|latex }}
+
+\vspace{0.7cm}
+
+\noindent
+\textbf{Ключевые итоги за период}
+
+{{ data.completed_work|latex }}
+
+\vspace{0.5cm}
+
+\noindent
+\textbf{Риски и ограничения}
+
+{% if data.current_risks %}
+{{ data.current_risks|latex }}
+{% else %}
+Критические риски не указаны.
+{% endif %}
+
+\vspace{0.5cm}
+
+\noindent
+\textbf{Ближайшие действия}
+
+{{ data.next_steps|latex }}
+
+\vspace{1cm}
+
+\noindent
+Документ сформирован автоматически на основе импортированных данных.
+
+\end{document}

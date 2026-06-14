@@ -1,0 +1,1081 @@
+{% extends "base.html" %}
+
+{% block title %}Модуль отчетов{% endblock %}
+
+{% block content %}
+<div class="dashboard-page mode-reports">
+    <div class="organization-menu-root" data-organization-menu>
+        <button
+            class="organization-avatar-button"
+            type="button"
+            aria-label="Организация"
+            aria-expanded="false"
+            data-organization-menu-button
+        >
+            <span class="organization-avatar-letter">О</span>
+        </button>
+
+        <div class="organization-dropdown" data-organization-dropdown aria-hidden="true">
+            <div class="organization-dropdown-header">
+                <div class="organization-dropdown-avatar">О</div>
+                <div>
+                    <div class="organization-dropdown-title">Организация</div>
+                    <div class="organization-dropdown-subtitle">Рабочее пространство</div>
+                </div>
+            </div>
+
+            <div class="organization-dropdown-actions">
+                <button class="organization-dropdown-item" type="button" data-organization-action="messages">
+                    <span class="organization-dropdown-icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M4.5 6.5A2.5 2.5 0 0 1 7 4h10a2.5 2.5 0 0 1 2.5 2.5v6A2.5 2.5 0 0 1 17 15H9l-4.5 4v-4.5A2.5 2.5 0 0 1 4.5 12Z"></path>
+                            <path d="M8 8h8"></path>
+                            <path d="M8 11h5"></path>
+                        </svg>
+                    </span>
+                    <span>Сообщения</span>
+                </button>
+
+                <button class="organization-dropdown-item" type="button" data-organization-action="members">
+                    <span class="organization-dropdown-icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M9 11a3 3 0 1 0 0-6a3 3 0 0 0 0 6Z"></path>
+                            <path d="M3.8 19a5.2 5.2 0 0 1 10.4 0"></path>
+                            <path d="M16.5 10.5a2.5 2.5 0 1 0 0-5"></path>
+                            <path d="M15.5 14.2A4.7 4.7 0 0 1 20.2 19"></path>
+                        </svg>
+                    </span>
+                    <span>Участники организации</span>
+                </button>
+
+                <button class="organization-dropdown-item" type="button" data-organization-action="shared-reports">
+                    <span class="organization-dropdown-icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M5.5 4.5h7.5l5.5 5.5v9.5H5.5Z"></path>
+                            <path d="M13 4.5V10h5.5"></path>
+                            <path d="M8.5 13h7"></path>
+                            <path d="M8.5 16h5"></path>
+                        </svg>
+                    </span>
+                    <span>Совместные отчеты</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="organization-members-popover" data-organization-members-popover aria-hidden="true">
+            <div class="organization-members-popover-header">
+                <div class="organization-members-popover-title-row">
+                    <h2>Участники организации</h2>
+                </div>
+                <label class="organization-members-search-field">
+                    <input
+                        type="search"
+                        class="organization-members-search-input"
+                        placeholder="Поиск участника"
+                        autocomplete="off"
+                        data-organization-members-search
+                    >
+                </label>
+            </div>
+
+            <div class="organization-members-body">
+                <div class="organization-members-state" data-organization-members-loading hidden>
+                    Загрузка участников...
+                </div>
+
+                <div class="organization-members-state organization-members-state-error" data-organization-members-error hidden>
+                    Не удалось загрузить участников организации.
+                </div>
+
+                <div class="organization-members-state" data-organization-members-empty hidden>
+                    В организации пока нет участников.
+                </div>
+
+                <div class="organization-members-table-wrap" data-organization-members-table-wrap hidden>
+                    <table class="organization-members-table">
+                        <thead>
+                            <tr>
+                                <th aria-label="Аватар"></th>
+                                <th>Имя</th>
+                                <th>Роль</th>
+                                <th>Должность</th>
+                                <th>Почта</th>
+                                <th aria-label="Действия"></th>
+                            </tr>
+                        </thead>
+                        <tbody data-organization-members-body></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="organization-messages-popover" data-organization-messages-popover aria-hidden="true">
+            <div class="organization-messages-header">
+                <h2>Сообщения</h2>
+                <button type="button" class="organization-messages-close" data-organization-messages-close aria-label="Закрыть">×</button>
+            </div>
+
+            <div class="organization-messages-layout">
+                <aside class="organization-messages-users">
+                    <div class="organization-messages-users-title">Участники</div>
+                    <div class="organization-messages-state" data-organization-messages-loading hidden>
+                        Загрузка участников...
+                    </div>
+                    <div class="organization-messages-state organization-messages-state-error" data-organization-messages-error hidden>
+                        Не удалось загрузить участников.
+                    </div>
+                    <div class="organization-messages-state" data-organization-messages-empty hidden>
+                        В организации пока нет участников.
+                    </div>
+                    <div class="organization-messages-users-list" data-organization-messages-users></div>
+                </aside>
+
+                <section class="organization-messages-dialog">
+                    <div class="organization-messages-dialog-header">
+                        <div>
+                            <h3 data-organization-messages-dialog-name>Выберите участника</h3>
+                            <p data-organization-messages-dialog-meta>Чтобы начать диалог, выберите участника слева.</p>
+                        </div>
+                    </div>
+
+                    <div class="organization-messages-history" data-organization-messages-history>
+                        <div class="organization-messages-dialog-empty">Выберите участника, чтобы начать диалог.</div>
+                    </div>
+
+                    <form class="organization-messages-form" data-organization-messages-form>
+                        <textarea
+                            class="organization-messages-input"
+                            placeholder="Введите сообщение"
+                            rows="1"
+                            data-organization-messages-input
+                            disabled
+                        ></textarea>
+                        <button class="organization-messages-send" type="submit" data-organization-messages-send disabled aria-label="Отправить">
+                            <span>→</span>
+                        </button>
+                    </form>
+                </section>
+            </div>
+        </div>
+
+        <div class="organization-shared-reports-popover" data-organization-shared-reports-popover aria-hidden="true">
+            <div class="organization-shared-reports-header">
+                <h2>Совместные отчеты</h2>
+                <label class="organization-shared-reports-search-field">
+                    <input
+                        type="search"
+                        class="organization-shared-reports-search-input"
+                        placeholder="Поиск отчета"
+                        autocomplete="off"
+                        data-organization-shared-reports-search
+                    >
+                </label>
+            </div>
+
+            <div class="organization-shared-reports-body">
+                <div class="organization-shared-reports-state" data-organization-shared-reports-loading hidden>
+                    Загрузка отчетов...
+                </div>
+                <div class="organization-shared-reports-state organization-shared-reports-state-error" data-organization-shared-reports-error hidden>
+                    Не удалось загрузить совместные отчеты.
+                </div>
+                <div class="organization-shared-reports-state" data-organization-shared-reports-empty hidden>
+                    Список совместных отчетов будет добавлен позже.
+                </div>
+                <div class="organization-shared-reports-list" data-organization-shared-reports-list></div>
+            </div>
+        </div>
+    </div>
+
+    <section class="page-hero">
+        <div>
+            <h1 class="hero-title" data-dashboard-title aria-live="polite" aria-label="Модуль отчетов">
+                <span class="hero-title-layer is-current" data-dashboard-title-current>Модуль отчетов</span>
+                <span class="hero-title-layer is-next" data-dashboard-title-next aria-hidden="true"></span>
+            </h1>
+        </div>
+    </section>
+
+    <section class="reports-board-shell">
+        <div class="reports-board-header">
+            <div class="reports-top-row">
+                <div class="reports-board-toolbar">
+                    <div class="reports-toolbar-search" data-search-widget>
+                        <button class="toolbar-circle-button" type="button" data-search-toggle aria-label="Поиск">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <circle cx="11" cy="11" r="6"></circle>
+                                <path d="M20 20l-4.2-4.2"></path>
+                            </svg>
+                        </button>
+                        <div class="toolbar-search-input-wrap">
+                            <input
+                                type="text"
+                                class="toolbar-search-input"
+                                placeholder="Поиск отчетов"
+                                data-report-search-input
+                            >
+                        </div>
+                    </div>
+
+                    <button class="toolbar-circle-button" type="button" data-filter-placeholder aria-label="Фильтр">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M4 7h14"></path>
+                            <path d="M4 12h10"></path>
+                            <path d="M4 17h6"></path>
+                        </svg>
+                    </button>
+
+                    <button class="toolbar-circle-button toolbar-select-button" type="button" data-select-toggle aria-label="Выделить" aria-pressed="false">
+                        <span class="toolbar-select-icon">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M5 12l4 4l10-10"></path>
+                            </svg>
+                        </span>
+                        <span class="toolbar-select-label">Выделить</span>
+                    </button>
+                </div>
+
+                <div class="hero-mini-stats">
+                    <div class="hero-mini-pill">
+                        <span class="hero-mini-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M7 4h8l3 3v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"></path>
+                                <path d="M15 4v4h4"></path>
+                                <path d="M9 11h6"></path>
+                                <path d="M9 15h6"></path>
+                            </svg>
+                        </span>
+                        <span class="hero-mini-value">{{ total_reports }}</span>
+                    </div>
+
+                    <div class="hero-mini-pill">
+                        <span class="hero-mini-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M3 12a9 9 0 1 0 3-6.7"></path>
+                                <path d="M3 4v4h4"></path>
+                                <path d="M12 7v5l3 2"></path>
+                            </svg>
+                        </span>
+                        <span class="hero-mini-value">
+                            {% if latest_report %}
+                                {{ latest_report.updated_at.strftime('%d.%m.%Y') }}
+                            {% else %}
+                                нет данных
+                            {% endif %}
+                        </span>
+                    </div>
+
+                    <button class="hero-mini-circle" type="button" aria-label="Дополнительная функция">
+                        <span aria-hidden="true">•••</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="reports-board-tabs" role="tablist" aria-label="Разделы модуля отчетности">
+                <button class="reports-board-tab is-active" type="button" role="tab" aria-selected="true" data-main-mode-toggle="reports">Отчеты</button>
+                <button class="reports-board-tab" type="button" role="tab" aria-selected="false" data-main-mode-toggle="templates">Шаблоны</button>
+            </div>
+        </div>
+
+        <div class="reports-board" data-dashboard-board>
+            <div class="dashboard-mode-panel is-active" data-main-mode-panel="reports">
+                <div class="reports-folder-panel" data-folder-panel>
+                    <button class="folder-round-button" type="button" data-open-all-reports-modal aria-label="Все отчеты и папки">
+                        <svg class="folder-grid-icon" viewBox="0 0 24 24" aria-hidden="true">
+                            <rect x="6" y="4.2" width="5" height="3.6" rx="1"></rect>
+                            <rect x="13" y="4.2" width="5" height="3.6" rx="1"></rect>
+                            <rect x="6" y="10.2" width="5" height="3.6" rx="1"></rect>
+                            <rect x="13" y="10.2" width="5" height="3.6" rx="1"></rect>
+                            <rect x="6" y="16.2" width="5" height="3.6" rx="1"></rect>
+                            <rect x="13" y="16.2" width="5" height="3.6" rx="1"></rect>
+                        </svg>
+                    </button>
+
+                    <button class="folder-round-button folder-all-button is-active" type="button" data-folder-reset aria-label="Все отчеты">
+                        <svg class="folder-stack-window-icon" viewBox="0 0 24 24" aria-hidden="true">
+                            <path class="folder-stack-sheet sheet-back" d="M4.5 5.5h9.5v7.5H4.5Z"></path>
+                            <path class="folder-stack-sheet sheet-middle" d="M7.25 8.5h9.5V16H7.25Z"></path>
+                            <path class="folder-stack-sheet sheet-front" d="M10 11.5h9.5V19H10Z"></path>
+                        </svg>
+                    </button>
+
+                    <button class="folder-round-button folder-pin-button" type="button" data-open-pin-folder-modal aria-label="Закрепить папку">
+                        +
+                    </button>
+
+                    <button class="folder-scroll-button" type="button" data-pinned-scroll="left" aria-label="Прокрутить папки влево" hidden>
+                        <svg class="folder-scroll-icon" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M8 10l4 4l4-4"></path>
+                        </svg>
+                    </button>
+
+                    <div class="pinned-folder-viewport">
+                        <div class="pinned-folder-strip" data-pinned-folder-strip></div>
+                    </div>
+
+                    <button class="folder-scroll-button" type="button" data-pinned-scroll="right" aria-label="Прокрутить папки вправо" hidden>
+                        <svg class="folder-scroll-icon" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M8 10l4 4l4-4"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="reports-grid">
+                <button class="report-card document-card create-card create-document-card" type="button" data-open-create-modal>
+                    <span class="document-glow" aria-hidden="true"></span>
+                    <span class="document-stack">
+                        <span class="document-sheet document-sheet-left dashed"></span>
+                        <span class="document-sheet document-sheet-right dashed"></span>
+                        <span class="document-sheet document-sheet-main dashed">
+                            <span class="create-plus">+</span>
+                            <span class="create-title">Создать новый отчет</span>
+                        </span>
+                    </span>
+                </button>
+
+                {% for report in reports %}
+                    <article
+                        class="report-card document-card"
+                        data-report-card
+                        data-report-id="{{ report.id }}"
+                        data-report-title="{{ report.report_title }}"
+                        data-report-tag="{{ report.tag or '' }}"
+                        data-folder-id="{{ report.folder_id or '' }}"
+                        data-dashboard-preview-url="{{ url_for('reports.dashboard_report_preview', report_id=report.id) }}"
+                    >
+                        <button class="report-card-menu" type="button" data-card-menu-toggle data-report-menu-button aria-label="Открыть меню" aria-expanded="false">...</button>
+                        <div class="card-menu-dropdown" data-card-menu>
+                            <button type="button"
+                                    data-open-preview-modal
+                                    data-preview-url="{{ url_for('reports.dashboard_report_preview', report_id=report.id) }}">
+                                Предварительный просмотр
+                            </button>
+                            <button type="button"
+                                    data-open-rename-modal
+                                    data-report-id="{{ report.id }}"
+                                    data-report-title="{{ report.report_title }}"
+                                    data-report-tag="{{ report.tag or '' }}"
+                                    data-rename-url="{{ url_for('reports.rename_report', report_id=report.id) }}">
+                                Переименовать
+                            </button>
+                            <a href="{{ url_for('reports.download_report', report_id=report.id) }}">Скачать</a>
+                            <form method="post" action="{{ url_for('reports.share_report', report_id=report.id) }}">
+                                <button type="submit">Поделиться</button>
+                            </form>
+                            <form method="post" action="{{ url_for('reports.delete_report', report_id=report.id) }}" data-delete-form>
+                                <button type="submit" class="danger-action">Удалить</button>
+                            </form>
+                        </div>
+
+                        <div class="document-glow" aria-hidden="true"></div>
+                        <div class="document-stack" aria-hidden="true">
+                            <div class="document-sheet document-sheet-left"></div>
+                            <div class="document-sheet document-sheet-right"></div>
+                            <div class="document-sheet document-sheet-main">
+                                <div class="document-lines">
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="document-card-glass">
+                            <div class="document-card-title">{{ report.report_title }}</div>
+                            <div class="document-card-type">{{ template_options.get(report.template_key, report.template_key or 'Не выбран') }}</div>
+                        </div>
+                    </article>
+                {% endfor %}
+                </div>
+            </div>
+
+            <div class="dashboard-mode-panel templates-mode-panel" data-main-mode-panel="templates" hidden>
+                <div class="template-tags-panel" data-template-tags-panel>
+                    <button class="folder-round-button template-tag-reset is-active" type="button" data-template-tag-reset aria-label="Все шаблоны">
+                        <svg class="folder-stack-window-icon" viewBox="0 0 24 24" aria-hidden="true">
+                            <path class="folder-stack-sheet sheet-back" d="M4.5 5.5h9.5v7.5H4.5Z"></path>
+                            <path class="folder-stack-sheet sheet-middle" d="M7.25 8.5h9.5V16H7.25Z"></path>
+                            <path class="folder-stack-sheet sheet-front" d="M10 11.5h9.5V19H10Z"></path>
+                        </svg>
+                    </button>
+                    <div class="template-tags-viewport">
+                        <div class="template-tags-strip" data-template-tags-strip></div>
+                    </div>
+                </div>
+
+                <div class="reports-grid templates-grid" data-dashboard-template-grid></div>
+                <div class="template-empty-state" data-dashboard-template-empty hidden>Шаблоны с этим тегом пока не найдены</div>
+            </div>
+        </div>
+    </section>
+    <script type="application/json" data-dashboard-template-data>{{ dashboard_templates|tojson }}</script>
+    <script type="application/json" data-template-taxonomy-data>{{ template_taxonomy|tojson }}</script>
+</div>
+
+<div class="organization-member-actions-menu" data-organization-member-menu hidden>
+    <button type="button" data-organization-member-menu-action="message">
+        <span class="organization-member-menu-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4.5 6.5A2.5 2.5 0 0 1 7 4h10a2.5 2.5 0 0 1 2.5 2.5v6A2.5 2.5 0 0 1 17 15H9l-4.5 4v-4.5A2.5 2.5 0 0 1 4.5 12Z"></path>
+                <path d="M8 8h8"></path>
+                <path d="M8 11h5"></path>
+            </svg>
+        </span>
+        <span>Написать сообщение</span>
+    </button>
+    <button type="button" data-organization-member-menu-action="invite">
+        <span class="organization-member-menu-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9.5 11a3 3 0 1 0 0-6a3 3 0 0 0 0 6Z"></path>
+                <path d="M4 19a5.5 5.5 0 0 1 11 0"></path>
+                <path d="M18 8v6"></path>
+                <path d="M15 11h6"></path>
+            </svg>
+        </span>
+        <span>Пригласить</span>
+    </button>
+</div>
+
+<div class="modal-backdrop" data-modal="createReportModal" aria-hidden="true">
+    <div class="modal create-report-modal">
+        <form class="create-report-form" method="post" action="{{ url_for('reports.create_report') }}" data-create-report-form novalidate>
+            <div class="create-report-modal-layout">
+                <section class="template-panel" data-template-panel>
+                    <div class="template-picker" data-template-picker>
+                        <div class="template-toolbar">
+                            <label class="template-type-field">
+                                <span>Тип</span>
+                                <select data-template-type-filter>
+                                    <option value="all">Все типы</option>
+                                    <option value="basic">Basic</option>
+                                    <option value="analytical">Analytical</option>
+                                    <option value="table">Table</option>
+                                    <option value="imported">Imported</option>
+                                    <option value="summary">Summary</option>
+                                </select>
+                            </label>
+                            <label class="template-search-field">
+                                <span class="sr-only">Поиск шаблонов</span>
+                                <input type="search" placeholder="Поиск шаблона" data-template-search>
+                            </label>
+                        </div>
+
+                        <div class="template-grid" data-template-grid>
+                            {% for template in create_template_options %}
+                                <button
+                                    class="template-card"
+                                    type="button"
+                                    data-template-card
+                                    data-template-key="{{ template.key }}"
+                                    data-template-title="{{ template.title }}"
+                                    data-template-type="{{ template.type }}"
+                                    data-template-description="{{ template.description }}"
+                                >
+                                    <strong>{{ template.title }}</strong>
+                                    <span>{{ template.type }}</span>
+                                </button>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="template-preview-panel" data-template-preview hidden>
+                        <div class="template-preview-sheet">
+                            <div class="template-preview-kicker" data-template-preview-type>basic</div>
+                            <h3 data-template-preview-title>Универсальный отчет</h3>
+                            <p data-template-preview-description>Базовый шаблон для произвольной отчетности.</p>
+                            <div class="template-preview-lines" aria-hidden="true">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                        </div>
+                        <button class="template-back-button" type="button" data-template-back>
+                            <span aria-hidden="true">←</span>
+                            <span>Назад</span>
+                        </button>
+                    </div>
+                </section>
+
+                <section class="report-settings-panel">
+                    <header class="report-settings-header">
+                        <h2>Создать отчет</h2>
+                        <button type="button" class="modal-close" data-close-modal>×</button>
+                    </header>
+
+                    <div class="report-settings-content">
+                        <input type="hidden" name="template_key" data-selected-template-key>
+                        <input type="hidden" name="template_title" data-selected-template-title>
+                        <input type="hidden" name="report_date" value="{{ today_iso }}">
+                        <div data-file-token-list></div>
+
+                        <div class="settings-grid">
+                            <label class="form-field">
+                                <span>Название отчета</span>
+                                <input type="text" name="report_title" data-create-report-title>
+                            </label>
+
+                            <label class="form-field">
+                                <span>Папка отчета</span>
+                                <input type="hidden" name="folder_id" value="" data-create-folder-id>
+                                <button class="create-folder-picker-button" type="button" data-create-folder-picker>
+                                    <span data-create-folder-label>Добавить в</span>
+                                </button>
+                            </label>
+
+                            <div class="form-field">
+                                <span>Открыть доступ</span>
+                                <input type="hidden" name="share_user_ids" value="[]" data-create-share-user-ids>
+                                <input type="hidden" name="share_group_ids" value="[]" data-create-share-group-ids>
+                                <div class="create-share-picker-control">
+                                    <button class="create-share-picker-button" type="button" data-create-share-picker>
+                                        <span data-create-share-empty>Добавить доступ</span>
+                                        <span class="create-share-selected" data-create-share-selected hidden>
+                                            <span data-create-share-summary></span>
+                                        </span>
+                                    </button>
+                                    <button class="create-share-edit-button" type="button" data-create-share-edit hidden aria-label="Изменить доступ">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                                            <path d="M5 19l4.2-1l9.1-9.1a2 2 0 0 0-2.8-2.8L6.4 15.2Z"></path>
+                                            <path d="M14.5 6.5l3 3"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <label class="form-field">
+                                <span>Дата отчета</span>
+                                <input type="text" value="{{ today_display }}" readonly>
+                            </label>
+
+                            <label class="form-field">
+                                <span>Тег</span>
+                                <input type="text" name="tag" placeholder="Например: Трудозатраты">
+                            </label>
+
+                            <label class="form-field">
+                                <span>Связь с</span>
+                                <input type="hidden" name="linked_report_id" value="" data-create-linked-report-id>
+                                <button class="create-link-picker-button" type="button" data-create-link-picker>
+                                    <span class="create-link-empty" data-create-link-empty>Добавить связь</span>
+                                    <span class="create-link-selected" data-create-link-selected hidden>
+                                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                                            <path d="M7 4h8l4 4v12H7Z"></path>
+                                            <path d="M15 4v5h5"></path>
+                                        </svg>
+                                        <span data-create-link-label></span>
+                                    </span>
+                                </button>
+                            </label>
+                        </div>
+
+                        <div class="import-area" data-import-dropzone>
+                            <input id="reportFileInput" type="file" accept=".docx,.xlsx,.xlsm,.csv,.pdf" multiple data-import-file-input>
+                            <div class="import-area-content">
+                                <strong>Импортировать данные</strong>
+                                <span>Перетащите DOCX, XLSX, XLSM, CSV или PDF сюда либо нажмите для выбора</span>
+                            </div>
+                        </div>
+
+                        <div class="import-file-list" data-import-file-list>
+                            <div class="import-empty-state">Файлы еще не добавлены</div>
+                        </div>
+                    </div>
+
+                    <div class="workflow-steps create-workflow-steps" data-active-step="1">
+                        <div class="workflow-step is-active">
+                            <div class="workflow-step-circle">1</div>
+                            <div class="workflow-step-label">Создание</div>
+                        </div>
+                        <div class="workflow-step">
+                            <div class="workflow-step-circle">2</div>
+                            <div class="workflow-step-label">Предпросмотр</div>
+                        </div>
+                        <div class="workflow-step">
+                            <div class="workflow-step-circle">3</div>
+                            <div class="workflow-step-label">Редактирование</div>
+                        </div>
+                        <div class="workflow-step-description">
+                            Выберите свой шаблон, укажите данные и создайте отчет.
+                        </div>
+                    </div>
+
+                    <footer class="report-settings-actions">
+                        <button type="button" class="button secondary" data-close-modal>Отмена</button>
+                        <button type="submit" class="button" data-create-submit>Подтвердить</button>
+                    </footer>
+                </section>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-backdrop" data-modal="createTemplateModal" aria-hidden="true">
+    <div class="modal create-template-modal">
+        <form class="create-template-form" data-create-template-form novalidate>
+            <div class="create-template-modal-layout">
+                <section class="template-create-base-panel">
+                    <header class="template-create-base-header">
+                        <h2>Выбор основы</h2>
+                        <label class="template-create-search-field">
+                            <span class="sr-only">Поиск шаблона</span>
+                            <input type="search" placeholder="Поиск шаблона" data-template-create-search>
+                        </label>
+                    </header>
+
+                    <div class="template-create-base-grid" data-template-create-base-grid></div>
+                    <div class="template-create-empty" data-template-create-empty hidden>Шаблоны не найдены</div>
+                </section>
+
+                <section class="template-create-settings-panel">
+                    <header class="report-settings-header">
+                        <h2>Создать шаблон</h2>
+                        <button type="button" class="modal-close" data-close-modal>×</button>
+                    </header>
+
+                    <div class="template-create-settings-content">
+                        <div class="settings-grid template-create-settings-grid">
+                            <label class="form-field">
+                                <span>Название шаблона</span>
+                                <input type="text" placeholder="Например: Шаблон ВКР" data-template-create-title>
+                            </label>
+
+                            <label class="form-field">
+                                <span>Тег</span>
+                                <input type="text" placeholder="Например: Учебный" data-template-create-tag>
+                            </label>
+
+                            <label class="form-field">
+                                <span>Тип</span>
+                                <select data-template-create-type>
+                                    {% for type_option in template_taxonomy.types %}
+                                        <option value="{{ type_option.name }}">{{ type_option.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+
+                            <label class="form-field">
+                                <span>Дата создания</span>
+                                <input type="text" readonly data-template-create-date>
+                            </label>
+                        </div>
+
+                        <div class="template-create-source-summary">
+                            <span>Основа</span>
+                            <strong data-template-create-source-label>Пустой шаблон</strong>
+                        </div>
+                    </div>
+
+                    <footer class="report-settings-actions">
+                        <button type="button" class="button secondary" data-close-modal data-template-create-cancel>Отменить</button>
+                        <button type="submit" class="button">Создать</button>
+                    </footer>
+                </section>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-backdrop" data-modal="previewReportModal" aria-hidden="true">
+    <div class="modal report-preview-modal">
+        <div class="report-preview-modal-header">
+            <div class="report-preview-title-row">
+                <h2>Предпросмотр отчета</h2>
+                <span class="dashboard-preview-folder-text" data-dashboard-preview-folder-text>Папка: Без папки</span>
+                <button class="dashboard-preview-folder-button" type="button" data-dashboard-preview-folder-button aria-label="Изменить папку отчета">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M3.5 7.5A2.5 2.5 0 0 1 6 5h4l2 2h6.5A2.5 2.5 0 0 1 21 9.5v8A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5v-10Z"></path>
+                    </svg>
+                </button>
+                <span class="dashboard-preview-link-text" data-dashboard-preview-link-text>Связан с: -</span>
+                <button class="dashboard-preview-link-button" type="button" data-dashboard-preview-link-button aria-label="Изменить связь отчета">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M9.5 7.5l-1.4 1.4a4 4 0 0 0 5.7 5.7l1.4-1.4"></path>
+                        <path d="M14.5 16.5l1.4-1.4a4 4 0 0 0-5.7-5.7L8.8 10.8"></path>
+                    </svg>
+                </button>
+                <span class="dashboard-preview-share-root">
+                    <span class="dashboard-preview-share-label">Совместно с:</span>
+                    <button class="dashboard-preview-share-text" type="button" data-dashboard-preview-share-text>—</button>
+                    <div class="dashboard-preview-shares-dropdown" data-dashboard-preview-shares-dropdown hidden></div>
+                </span>
+                <button class="dashboard-preview-share-button" type="button" data-dashboard-preview-share-button aria-label="Открыть совместный доступ">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="18" cy="5" r="2.5"></circle>
+                        <circle cx="6" cy="12" r="2.5"></circle>
+                        <circle cx="18" cy="19" r="2.5"></circle>
+                        <path d="M8.4 10.8l9.2-4.6"></path>
+                        <path d="M8.4 13.2l9.2 4.6"></path>
+                    </svg>
+                </button>
+                <div class="report-export-root dashboard-preview-export-root" data-report-export-root>
+                    <button class="report-export-toggle" type="button" data-report-export-toggle aria-expanded="false">
+                        <span data-report-export-label>Экспорт</span>
+                    </button>
+                    <div class="report-export-menu" data-report-export-menu hidden>
+                        <button type="button" data-report-export-format="docx">Word (.docx)</button>
+                        <button type="button" data-report-export-format="pdf">PDF (.pdf)</button>
+                        <button type="button" data-report-export-format="xml">XML (.xml)</button>
+                    </div>
+                </div>
+            </div>
+            <button type="button" class="modal-close" data-close-modal>×</button>
+        </div>
+        <div class="report-preview-modal-body">
+            <div class="dashboard-preview-stage is-loading" data-dashboard-preview-stage>
+                <div class="dashboard-preview-document is-blurred" data-dashboard-preview-document>
+                    <div class="dashboard-preview-pages">
+                        <section class="dashboard-preview-sheet">
+                            <div class="preview-title-kicker">Загрузка отчета</div>
+                            <h1>Подготавливаем предпросмотр</h1>
+                            <p>Документ появится здесь через мгновение.</p>
+                        </section>
+                    </div>
+                </div>
+                <div class="dashboard-preview-loader" aria-label="Загрузка отчета"></div>
+            </div>
+        </div>
+
+        <div class="report-preview-modal-actions">
+            <button type="button" class="button secondary">Пустая</button>
+            <a class="button" href="#" data-dashboard-preview-edit>Редактировать</a>
+        </div>
+    </div>
+</div>
+
+<div class="modal-backdrop" data-modal="reportLinkPickerModal" aria-hidden="true">
+    <div class="modal report-link-picker-modal">
+        <div class="modal-header">
+            <div>
+                <h2>Добавить связь</h2>
+                <p>Выберите отчет, с которым нужно связать текущий.</p>
+            </div>
+            <button type="button" class="modal-close" data-close-modal>×</button>
+        </div>
+        <div class="modal-body report-link-picker-body">
+            <input class="folder-search-input" type="search" placeholder="Поиск отчетов" data-report-link-search>
+            <div class="report-link-tree" data-report-link-tree>
+                <button class="report-link-row report-link-none-option is-selected" type="button" data-report-link-none>
+                    <span class="report-link-row-spacer"></span>
+                    <span class="report-link-icon report-link-document-icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M7 4h8l4 4v12H7Z"></path>
+                            <path d="M15 4v5h5"></path>
+                        </svg>
+                    </span>
+                    <span class="report-link-title">Без связи</span>
+                </button>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="button secondary" data-close-modal>Отмена</button>
+            <button type="button" class="button" data-report-link-confirm>Подтвердить</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-backdrop" data-modal="reportSharePickerModal" aria-hidden="true">
+    <div class="modal report-share-picker-modal">
+        <div class="modal-header">
+            <div>
+                <h2>Совместный доступ</h2>
+                <p>Выберите участников или группы, которым нужно открыть доступ к отчету.</p>
+            </div>
+            <button type="button" class="modal-close" data-close-modal>×</button>
+        </div>
+        <div class="modal-body report-share-picker-body">
+            <div class="report-share-type-switch" role="tablist" aria-label="Тип доступа">
+                <button type="button" class="is-active" data-report-share-subject-type="user">Пользователи</button>
+                <button type="button" data-report-share-subject-type="group">Группы</button>
+            </div>
+            <input class="folder-search-input" type="search" placeholder="Поиск участника" data-report-share-search>
+
+            <div class="report-share-picker-state" data-report-share-loading hidden>
+                Загрузка доступа...
+            </div>
+            <div class="report-share-picker-state report-share-picker-error" data-report-share-error hidden>
+                Не удалось загрузить участников и группы.
+            </div>
+            <div class="report-share-picker-state" data-report-share-empty hidden>
+                Нет доступных объектов для совместного доступа.
+            </div>
+            <div class="report-share-picker-state" data-report-share-no-results hidden>
+                Ничего не найдено
+            </div>
+
+            <div class="report-share-picker-list" data-report-share-list></div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="button secondary" data-close-modal>Отмена</button>
+            <button type="button" class="button" data-report-share-confirm>Подтвердить</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-backdrop" data-modal="folderPickerModal" aria-hidden="true">
+    <div class="modal folder-picker-modal">
+        <div class="modal-header">
+            <div>
+                <h2>Добавить в папку</h2>
+                <p>Выберите папку или оставьте отчет без папки.</p>
+            </div>
+            <button type="button" class="modal-close" data-close-modal>×</button>
+        </div>
+        <div class="modal-body folder-picker-body">
+            <input class="folder-search-input" type="search" placeholder="Поиск папок" data-folder-picker-search>
+            <div class="folder-tree folder-picker-tree" data-folder-picker-tree>
+                <div
+                    class="folder-tree-item folder-picker-none-option"
+                    data-folder-row
+                    data-folder-tree-item
+                    data-folder-picker-select
+                    data-folder-id=""
+                    data-parent-id=""
+                    data-folder-parent-id=""
+                    data-folder-name="Без папки"
+                    data-folder-has-children="false"
+                >
+                    <span class="folder-tree-toggle is-placeholder" aria-hidden="true"></span>
+                    <button class="folder-tree-main" type="button">
+                        <span class="folder-tree-name">Без папки</span>
+                    </button>
+                    <span class="folder-subfolder-button is-placeholder" aria-hidden="true"></span>
+                </div>
+                {% if folder_rows %}
+                    {% for folder in folder_rows %}
+                        <div
+                            class="folder-tree-item{% if folder.has_children %} is-collapsed{% endif %}"
+                            style="--folder-level: {{ folder.level }}"
+                            data-folder-row
+                            data-folder-tree-item
+                            data-folder-id="{{ folder.id }}"
+                            data-parent-id="{{ folder.parent_id or '' }}"
+                            data-folder-parent-id="{{ folder.parent_id or '' }}"
+                            data-folder-name="{{ folder.name }}"
+                            data-folder-has-children="{{ 'true' if folder.has_children else 'false' }}"
+                        >
+                            <button class="folder-tree-toggle{% if not folder.has_children %} is-placeholder{% endif %}" type="button" data-folder-toggle aria-label="Раскрыть папку" {% if not folder.has_children %}disabled aria-hidden="true"{% endif %}>
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M7 10l5 5l5-5"></path>
+                                </svg>
+                            </button>
+                            <button
+                                class="folder-tree-main"
+                                type="button"
+                                data-folder-picker-select
+                                data-folder-id="{{ folder.id }}"
+                                data-folder-name="{{ folder.name }}"
+                            >
+                                <span class="folder-tree-name">{{ folder.name }}</span>
+                            </button>
+                            <button class="folder-subfolder-button" type="button" data-create-subfolder data-folder-id="{{ folder.id }}" data-folder-name="{{ folder.name }}" aria-label="Добавить подпапку">+</button>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="folder-empty-state">Папки еще не созданы</div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="button secondary" data-close-modal>Отмена</button>
+            <button type="button" class="button" data-folder-picker-confirm>Подтвердить</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-backdrop" data-modal="allReportsModal" aria-hidden="true">
+    <div class="modal folders-modal">
+        <div class="folders-modal-layout">
+            <aside class="folders-modal-sidebar">
+                <button class="button folder-create-button" type="button" data-create-folder>Создать новую папку</button>
+                <div class="folder-search-shell" data-folder-search-widget>
+                    <button class="folder-search-mode-button" type="button" data-folder-search-mode-button aria-label="Режим поиска">
+                        <span class="folder-search-mode-icon" data-folder-search-mode-icon>
+                            <svg class="search-mode-composite-icon" viewBox="0 0 32 32" aria-hidden="true">
+                                <path class="search-mode-main" d="M4 11.3A3.3 3.3 0 0 1 7.3 8h6.3l2.1 3h9A3.3 3.3 0 0 1 28 14.3v8.4a3.3 3.3 0 0 1-3.3 3.3H7.3A3.3 3.3 0 0 1 4 22.7Z"></path>
+                                <circle class="search-mode-loupe-lens" cx="23.2" cy="23.1" r="3.7"></circle>
+                                <path class="search-mode-loupe-handle" d="M26 25.9l3 3"></path>
+                            </svg>
+                        </span>
+                    </button>
+                    <input class="folder-search-input" type="search" placeholder="Поиск папок" data-folder-search>
+                    <div class="folder-search-mode-menu" data-folder-search-mode-menu hidden>
+                        <button type="button" data-folder-search-mode-option data-search-mode="folders">
+                            <span class="folder-search-option-icon">
+                                <svg class="search-mode-composite-icon" viewBox="0 0 32 32" aria-hidden="true">
+                                    <path class="search-mode-main" d="M4 11.3A3.3 3.3 0 0 1 7.3 8h6.3l2.1 3h9A3.3 3.3 0 0 1 28 14.3v8.4a3.3 3.3 0 0 1-3.3 3.3H7.3A3.3 3.3 0 0 1 4 22.7Z"></path>
+                                    <circle class="search-mode-loupe-lens" cx="23.2" cy="23.1" r="3.7"></circle>
+                                    <path class="search-mode-loupe-handle" d="M26 25.9l3 3"></path>
+                                </svg>
+                            </span>
+                            <span>Найти папку</span>
+                        </button>
+                        <button type="button" data-folder-search-mode-option data-search-mode="reports">
+                            <span class="folder-search-option-icon">
+                                <svg class="search-mode-composite-icon" viewBox="0 0 32 32" aria-hidden="true">
+                                    <path class="search-mode-main" d="M8 5h10.2L24 10.8V26H8Z"></path>
+                                    <path class="search-mode-fold" d="M18.2 5v6.2H24"></path>
+                                    <circle class="search-mode-loupe-lens" cx="23.2" cy="23.1" r="3.7"></circle>
+                                    <path class="search-mode-loupe-handle" d="M26 25.9l3 3"></path>
+                                </svg>
+                            </span>
+                            <span>Найти отчет в папке</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="folder-tree" data-folder-tree>
+                    {% if folder_rows %}
+                        {% for folder in folder_rows %}
+                            <div
+                                class="folder-tree-item{% if folder.has_children %} is-collapsed{% endif %}"
+                                style="--folder-level: {{ folder.level }}"
+                                data-folder-row
+                                data-folder-tree-item
+                                data-folder-id="{{ folder.id }}"
+                                data-parent-id="{{ folder.parent_id or '' }}"
+                                data-folder-parent-id="{{ folder.parent_id or '' }}"
+                                data-folder-name="{{ folder.name }}"
+                                data-folder-has-children="{{ 'true' if folder.has_children else 'false' }}"
+                            >
+                                <button class="folder-tree-toggle{% if not folder.has_children %} is-placeholder{% endif %}" type="button" data-folder-toggle aria-label="Раскрыть папку" {% if not folder.has_children %}disabled aria-hidden="true"{% endif %}>
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M7 10l5 5l5-5"></path>
+                                    </svg>
+                                </button>
+                                <button
+                                    class="folder-tree-main"
+                                    type="button"
+                                    data-folder-select
+                                    data-folder-id="{{ folder.id }}"
+                                    data-folder-parent-id="{{ folder.parent_id or '' }}"
+                                    data-folder-name="{{ folder.name }}"
+                                    data-folder-has-children="{{ 'true' if folder.has_children else 'false' }}"
+                                >
+                                    <span class="folder-tree-name">{{ folder.name }}</span>
+                                </button>
+                                <button class="folder-subfolder-button" type="button" data-create-subfolder data-folder-id="{{ folder.id }}" data-folder-name="{{ folder.name }}" aria-label="Добавить подпапку">+</button>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="folder-empty-state">Папки еще не созданы</div>
+                    {% endif %}
+                </div>
+            </aside>
+
+            <section class="folders-modal-content">
+                <header class="folders-modal-header">
+                    <div>
+                        <h2>Все отчеты</h2>
+                        <p data-folder-report-caption>Выберите папку слева или просмотрите все отчеты.</p>
+                    </div>
+                    <button type="button" class="modal-close" data-close-modal>×</button>
+                </header>
+
+                <div class="folder-report-table">
+                    <div class="folder-report-head" aria-hidden="true">
+                        <div>Название</div>
+                        <div>Создан</div>
+                        <div>Изменен</div>
+                        <div>Тип</div>
+                        <div>Тег</div>
+                    </div>
+
+                    <div class="folder-report-list" data-folder-report-list>
+                        {% for report in reports %}
+                            <div
+                                class="folder-report-row"
+                                data-folder-report-row
+                                data-report-id="{{ report.id }}"
+                                data-folder-id="{{ report.folder_id or '' }}"
+                                data-report-title="{{ report.report_title }}"
+                                data-report-tag="{{ report.tag or '' }}"
+                                data-report-type="{{ template_options.get(report.template_key, report.template_key or 'Не выбран') }}"
+                            >
+                                <div class="folder-report-title">{{ report.report_title }}</div>
+                                <div>{{ report.created_at.strftime('%d.%m.%Y') }}</div>
+                                <div>{{ report.updated_at.strftime('%d.%m.%Y') }}</div>
+                                <div>{{ template_options.get(report.template_key, report.template_key or 'Не выбран') }}</div>
+                                <div>{{ report.tag or '—' }}</div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="folder-report-empty" data-folder-report-empty hidden>В этой папке пока нет отчетов</div>
+            </section>
+        </div>
+    </div>
+</div>
+
+<div class="modal-backdrop" data-modal="pinFolderModal" aria-hidden="true">
+    <div class="modal pin-folder-modal">
+        <div class="modal-header">
+            <div>
+                <h2>Закрепить папку</h2>
+                <p>Выберите папку, которая появится в верхней панели.</p>
+            </div>
+            <button type="button" class="modal-close" data-close-modal>×</button>
+        </div>
+        <div class="modal-body">
+            <input class="folder-search-input" type="search" placeholder="Поиск папок" data-pin-folder-search>
+            <div class="folder-tree pin-folder-tree" data-pin-folder-tree>
+                {% if folder_rows %}
+                    {% for folder in folder_rows %}
+                        <button
+                            class="folder-tree-item{% if folder.has_children %} is-collapsed{% endif %}"
+                            type="button"
+                            style="--folder-level: {{ folder.level }}"
+                            data-folder-row
+                            data-folder-tree-item
+                            data-pin-folder-option
+                            data-folder-id="{{ folder.id }}"
+                            data-parent-id="{{ folder.parent_id or '' }}"
+                            data-folder-parent-id="{{ folder.parent_id or '' }}"
+                            data-folder-name="{{ folder.name }}"
+                            data-folder-has-children="{{ 'true' if folder.has_children else 'false' }}"
+                        >
+                            <span class="folder-tree-caret" aria-hidden="true">{{ '▾' if folder.has_children else '' }}</span>
+                            <span class="folder-tree-name">{{ folder.name }}</span>
+                        </button>
+                    {% endfor %}
+                {% else %}
+                    <div class="folder-empty-state">Сначала создайте папку в окне “Все отчеты”</div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="button secondary" data-close-modal>Отмена</button>
+            <button type="button" class="button" data-pin-folder-confirm>Подтвердить</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-backdrop" data-modal="renameReportModal" aria-hidden="true">
+    <div class="modal compact">
+        <form method="post" data-rename-form>
+            <div class="modal-header">
+                <div>
+                    <h2>Переименовать отчет</h2>
+                    <p>Измените название и метку карточки.</p>
+                </div>
+                <button type="button" class="modal-close" data-close-modal>×</button>
+            </div>
+            <div class="modal-body">
+                <label class="form-field">
+                    <span>Новое название</span>
+                    <input type="text" name="report_title" data-rename-title required>
+                </label>
+                <label class="form-field">
+                    <span>Тег</span>
+                    <input type="text" name="tag" data-rename-tag>
+                </label>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="button secondary" data-close-modal>Отмена</button>
+                <button type="submit" class="button">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

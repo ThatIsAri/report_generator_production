@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Просмотр отчета{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h2>Статус-отчет №{{ report.id }}</h2>
+
+    <div class="report-info">
+        <p><strong>Проект:</strong> {{ report.project_name }}</p>
+        <p><strong>Дата отчета:</strong> {{ report.report_date.strftime('%d.%m.%Y') }}</p>
+        <p><strong>Ответственный менеджер:</strong> {{ report.manager_name }}</p>
+        <p><strong>Статус проекта:</strong> {{ report.project_status }}</p>
+    </div>
+
+    <h3>Выполненные работы</h3>
+    <p class="text-block">{{ report.completed_work }}</p>
+
+    <h3>Текущие риски</h3>
+    <p class="text-block">
+        {% if report.current_risks %}
+            {{ report.current_risks }}
+        {% else %}
+            Риски не указаны.
+        {% endif %}
+    </p>
+
+    <h3>План дальнейших действий</h3>
+    <p class="text-block">{{ report.next_steps }}</p>
+
+    <div class="actions">
+        <form method="post" action="{{ url_for('reports.generate_pdf', report_id=report.id) }}">
+            <button type="submit" class="button">Сформировать PDF</button>
+        </form>
+
+        {% if report.pdf_filename %}
+            <a class="button secondary" href="{{ url_for('reports.download_pdf', report_id=report.id) }}" target="_blank">
+                Открыть PDF
+            </a>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block title %}Редактирование отчета{% endblock %}
+
+{% block content %}
+<div
+    class="editor-page"
+    data-editor-root
+    data-report-id="{{ draft.id }}"
+    data-editor-state-url="{{ url_for('reports.api_get_editor_state', draft_id=draft.id) }}"
+    data-editor-autosave-url="/api/reports/{{ draft.id }}/autosave"
+    data-report-export-url="{% if draft.linked_report_id %}{{ url_for('reports.export_report', report_id=draft.linked_report_id, export_format='__format__') }}{% endif %}"
+    data-draft-save-root
+    data-draft-save-mode="editor"
+    data-draft-save-url="/api/reports/{{ draft.id }}/autosave"
+>
+    <div class="draft-top-actions editor-draft-actions">
+        <a class="floating-preview-button editor-back-button" href="{{ url_for('reports.compose_preview', draft_id=draft.id) }}">← Назад</a>
+        <button class="draft-save-button is-saved" type="button" data-draft-save-button disabled title="Сохранено" aria-label="Сохранено">
+            <svg viewBox="0 0 32 32" aria-hidden="true">
+                <path class="draft-save-disk" d="M7 5h12l3 3v15H6V5h1Z"></path>
+                <path class="draft-save-slot" d="M10 5v7h8V5"></path>
+                <path class="draft-save-line" d="M10 19h8"></path>
+                <g class="draft-save-arrow-badge">
+                    <circle class="draft-save-badge-bg" cx="23.5" cy="23.5" r="6"></circle>
+                    <path class="draft-save-badge-icon" d="M26.1 22a3.5 3.5 0 1 0 .1 3.3"></path>
+                    <path class="draft-save-badge-icon" d="M26.2 19.6v3h-3"></path>
+                </g>
+                <g class="draft-save-check-badge">
+                    <circle class="draft-save-badge-bg" cx="23.5" cy="23.5" r="6"></circle>
+                    <path class="draft-save-badge-icon" d="M20.6 23.4l2 2l4-4.4"></path>
+                </g>
+            </svg>
+        </button>
+    </div>
+
+    <div class="editor-toolbar" aria-label="Панель форматирования">
+        <button class="editor-icon-button" type="button" data-editor-undo title="Вернуть" aria-label="Вернуть">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 7H4v5"></path>
+                <path d="M4 12c2.3-3.3 5.2-5 8.6-5A7.4 7.4 0 1 1 7 19"></path>
+            </svg>
+        </button>
+        <button class="editor-icon-button" type="button" data-editor-redo title="Отменить" aria-label="Отменить">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M15 7h5v5"></path>
+                <path d="M20 12c-2.3-3.3-5.2-5-8.6-5A7.4 7.4 0 1 0 17 19"></path>
+            </svg>
+        </button>
+        <button class="editor-icon-button" type="button" data-editor-clear-styles title="Очистить стили" aria-label="Очистить стили">
+            <svg class="clear-styles-icon" viewBox="0 0 28 28" aria-hidden="true">
+                <path class="clear-drop-shape" d="M10.5 4.5s7.2 7.4 7.2 12.1a7.2 7.2 0 1 1-14.4 0c0-4.7 7.2-12.1 7.2-12.1Z"></path>
+                <path class="clear-drop-cross" d="M18 3.5l7 7"></path>
+                <path class="clear-drop-cross" d="M25 3.5l-7 7"></path>
+            </svg>
+        </button>
+
+        <button type="button" data-editor-command="bold"><strong>B</strong></button>
+        <button type="button" data-editor-command="italic"><em>I</em></button>
+        <button type="button" data-editor-command="underline"><u>U</u></button>
+
+        <button class="editor-icon-button" type="button" data-editor-align="justifyLeft" title="Выровнять по левому краю" aria-label="Выровнять по левому краю">
+            <svg class="align-svg" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 6h16"></path>
+                <path d="M4 12h11"></path>
+                <path d="M4 18h7"></path>
+            </svg>
+        </button>
+        <button class="editor-icon-button" type="button" data-editor-align="justifyCenter" title="Выровнять по центру" aria-label="Выровнять по центру">
+            <svg class="align-svg" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 6h16"></path>
+                <path d="M10 12h4"></path>
+                <path d="M4 18h16"></path>
+            </svg>
+        </button>
+        <button class="editor-icon-button" type="button" data-editor-align="justifyRight" title="Выровнять по правому краю" aria-label="Выровнять по правому краю">
+            <svg class="align-svg" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 6h16"></path>
+                <path d="M9 12h11"></path>
+                <path d="M13 18h7"></path>
+            </svg>
+        </button>
+        <button class="editor-icon-button" type="button" data-editor-align="justifyFull" title="Выровнять по ширине" aria-label="Выровнять по ширине">
+            <svg class="align-svg" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 6h16"></path>
+                <path d="M4 12h16"></path>
+                <path d="M4 18h16"></path>
+            </svg>
+        </button>
+
+        <label>
+            <span>Размер</span>
+            <select data-editor-font-size>
+                {% for size in range(1, 29) %}
+                    <option value="{{ size }}" {% if size == 12 %}selected{% endif %}>{{ size }} pt</option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <label>
+            <span>Шрифт</span>
+            <select data-editor-font-name>
+                <option value="Times New Roman">Times New Roman</option>
+            </select>
+        </label>
+
+        <div class="table-picker-wrap">
+            <button type="button" data-editor-table-toggle>Таблица</button>
+            <div class="table-size-popover" data-table-size-popover hidden>
+                <div class="table-size-label" data-table-size-label>1 x 1</div>
+                <div class="table-size-grid" data-table-size-grid>
+                    {% for row in range(1, 11) %}
+                        {% for col in range(1, 11) %}
+                            <button
+                                type="button"
+                                data-table-cell
+                                data-rows="{{ row }}"
+                                data-cols="{{ col }}"
+                                aria-label="{{ row }} x {{ col }}"
+                            ></button>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <button type="button" data-editor-command="insertOrderedList">1.</button>
+        <button type="button" data-editor-command="insertUnorderedList">•</button>
+
+        <label>
+            <span>Текст</span>
+            <input type="color" value="#111827" data-editor-fore-color>
+        </label>
+
+        <label data-editor-back-control>
+            <span>Фон</span>
+            <button class="editor-color-swatch" type="button" data-editor-back-apply title="Применить текущий фон" aria-label="Применить текущий фон">
+                <span data-editor-back-swatch></span>
+            </button>
+            <button class="editor-icon-button editor-color-picker-button" type="button" data-editor-back-picker title="Выбрать цвет фона" aria-label="Выбрать цвет фона">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M7 6h10"></path>
+                    <path d="M9 11h6"></path>
+                    <path d="M11 16h2"></path>
+                </svg>
+            </button>
+            <input class="editor-hidden-color-input" type="color" value="#fff3bf" data-editor-back-color tabindex="-1" aria-hidden="true">
+            <button class="editor-icon-button editor-transparent-button" type="button" data-editor-back-transparent title="Прозрачный фон" aria-label="Прозрачный фон">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M5 7h14v10H5Z"></path>
+                    <path d="M5 17L19 7"></path>
+                    <path d="M9 7v10"></path>
+                    <path d="M15 7v10"></path>
+                </svg>
+            </button>
+        </label>
+        <div class="draft-save-status editor-draft-status is-saved" data-draft-save-status>Сохранено</div>
+        {% if draft.linked_report_id %}
+        <div class="report-export-root editor-export-root" data-report-export-root>
+            <button class="report-export-toggle" type="button" data-report-export-toggle aria-expanded="false">
+                <span data-report-export-label>Экспорт</span>
+            </button>
+            <div class="report-export-menu" data-report-export-menu hidden>
+                <button type="button" data-report-export-format="docx">Word (.docx)</button>
+                <button type="button" data-report-export-format="pdf">PDF (.pdf)</button>
+                <button type="button" data-report-export-format="xml">XML (.xml)</button>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="editor-ruler" data-editor-ruler>
+        <div class="ruler-scale" aria-hidden="true">
+            {% for tick in range(0, 17) %}
+                <span style="left: {{ tick * 6.25 }}%">{{ tick }}</span>
+            {% endfor %}
+        </div>
+        <button class="ruler-marker page-margin left-margin" type="button" data-ruler-handle="page-left" aria-label="Левый общий отступ"></button>
+        <button class="ruler-marker page-margin right-margin" type="button" data-ruler-handle="page-right" aria-label="Правый общий отступ"></button>
+        <button class="ruler-marker paragraph-indent" type="button" data-ruler-handle="paragraph" aria-label="Отступ абзаца"></button>
+        <button class="ruler-marker line-indent" type="button" data-ruler-handle="line" aria-label="Отступ строки"></button>
+        <div class="ruler-value-bubble" data-ruler-bubble>0 см</div>
+    </div>
+
+    <div class="workflow-steps editor-workflow-steps" data-active-step="3">
+        <div class="workflow-step">
+            <div class="workflow-step-circle">1</div>
+            <div class="workflow-step-label">Создание</div>
+        </div>
+        <div class="workflow-step">
+            <div class="workflow-step-circle">2</div>
+            <div class="workflow-step-label">Предпросмотр</div>
+        </div>
+        <div class="workflow-step is-active">
+            <div class="workflow-step-circle">3</div>
+            <div class="workflow-step-label">Редактирование</div>
+        </div>
+        <div class="workflow-step-description">
+            Несколько штрихов до идеального отчета.
+        </div>
+    </div>
+
+    <main class="editor-canvas" data-editor-pages>
+        <div class="editor-source-content" data-editor-source-content hidden>
+            <h1>{{ draft.report_title }}</h1>
+            <p><strong>Дата отчета:</strong> {{ draft.report_date.strftime('%d.%m.%Y') }}</p>
+            <p><strong>Шаблон:</strong> {{ draft.template_title }}</p>
+
+            {% if draft.tag %}
+                <p><strong>Тег:</strong> {{ draft.tag }}</p>
+            {% endif %}
+
+            {% for block in blocks %}
+                {% if block["rows"] %}
+                    <table>
+                        {% for row in block["rows"] %}
+                            <tr>
+                                {% for cell in row %}
+                                    <td>{{ cell }}</td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </table>
+                {% elif block["items"] %}
+                    <ul>
+                        {% for item in block["items"] %}
+                            <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>{{ block["content_text"] }}</p>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </main>
+</div>
+{% endblock %}

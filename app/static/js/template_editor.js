@@ -104,14 +104,14 @@ document.addEventListener("DOMContentLoaded", function () {
     var editor = null;
 
     var TEMPLATE_PARAMETER_REGISTRY = {
-        report_title: { label: "Название отчета", group: "basic", kind: "text", preview: "Тестовый отчет" },
+        report_title: { label: "Название отчета", group: "basic", kind: "text", preview: "Корпоративный отчет" },
         author: { label: "Автор", group: "basic", kind: "text", preview: "Пользователь" },
         report_date: { label: "Дата отчета", group: "basic", kind: "text", preview: "22.05.2026" },
         tag: { label: "Тег", group: "basic", kind: "text", preview: "Учебный" },
         report_type: { label: "Тип отчета", group: "basic", kind: "text", preview: "Универсальный отчет" },
-        imported_paragraphs: { label: "Абзацы из файла", group: "imported", kind: "text", preview: "Тестовый абзац импортированных данных." },
+        imported_paragraphs: { label: "Абзацы из файла", group: "imported", kind: "text", preview: "Фрагмент импортированных данных." },
         imported_tables: { label: "Таблицы из файла", group: "imported", kind: "table" },
-        imported_headings: { label: "Заголовки из файла", group: "imported", kind: "text", preview: "Тестовый заголовок" },
+        imported_headings: { label: "Заголовки из файла", group: "imported", kind: "text", preview: "Заголовок раздела" },
         imported_lists: { label: "Списки из файла", group: "imported", kind: "list" },
         generated_at: { label: "Дата формирования", group: "system", kind: "text" },
         page_number: { label: "Номер страницы", group: "system", kind: "text", preview: "1" },
@@ -155,6 +155,68 @@ document.addEventListener("DOMContentLoaded", function () {
         section_number: "{{ section_number|latex }}",
         custom_placeholder: "{{ custom_placeholder|latex }}"
     };
+    var DEMO_TEMPLATE_CUSTOM_CHIPS = [
+        {
+            id: "demo_status_badge",
+            field: "demo_status_badge",
+            label: "Статус проекта",
+            group: "data",
+            kind: "status_badge",
+            insertMode: "block",
+            preview: "В работе",
+            latex: "\\textbf{Статус проекта:} В работе",
+            isFavorite: true,
+            isDemo: true
+        },
+        {
+            id: "demo_kpi_cards",
+            field: "demo_kpi_cards",
+            label: "KPI карточки",
+            group: "data",
+            kind: "kpi_cards",
+            insertMode: "block",
+            preview: "План: 100 / Факт: 96 / Риск: 4",
+            latex: "\\textbf{KPI:} План 100, факт 96, риски 4",
+            isFavorite: false,
+            isDemo: true
+        },
+        {
+            id: "demo_risk_matrix",
+            field: "demo_risk_matrix",
+            label: "Матрица рисков",
+            group: "data",
+            kind: "risk_matrix",
+            insertMode: "block",
+            preview: "3 x 3 матрица рисков",
+            latex: "\\textbf{Матрица рисков:} низкий / средний / высокий",
+            isFavorite: false,
+            isDemo: true
+        },
+        {
+            id: "demo_bar_chart",
+            field: "demo_bar_chart",
+            label: "Мини-график",
+            group: "graphics",
+            kind: "bar_chart",
+            insertMode: "block",
+            preview: "План-факт по кварталам",
+            latex: "\\textbf{Мини-график:} Q1 72\\%, Q2 84\\%, Q3 68\\%, Q4 91\\%",
+            isFavorite: false,
+            isDemo: true
+        },
+        {
+            id: "demo_approval_block",
+            field: "demo_approval_block",
+            label: "Блок согласования",
+            group: "utils",
+            kind: "approval_block",
+            insertMode: "block",
+            preview: "Согласовано / Проверено / Утверждено",
+            latex: "\\textbf{Согласование:} подготовил, проверил, утвердил",
+            isFavorite: false,
+            isDemo: true
+        }
+    ];
 
     Object.keys(DEFAULT_TEMPLATE_CHIP_LATEX).forEach(function (field) {
         if (TEMPLATE_PARAMETER_REGISTRY[field]) {
@@ -162,7 +224,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
     var templateChipConfigs = readInitialTemplateChipConfigs();
-    var customTemplateChips = readInitialTemplateChips();
+    var customTemplateChips = mergeDemoTemplateCustomChips(readInitialTemplateChips());
     var adminTemplateChips = [];
     var adminTemplateChipCategories = [];
     applyInitialTemplateChipState();
@@ -321,11 +383,42 @@ document.addEventListener("DOMContentLoaded", function () {
             label: label || definition.label || field,
             group: chip.group === "favorite" ? "custom" : (chip.group || definition.group || "custom"),
             kind: chip.kind || definition.kind || "text",
+            insertMode: chip.insertMode || chip.insert_mode || definition.insertMode || definition.insert_mode || "placeholder",
             basedOn: chip.basedOn || chip.based_on || "",
             latex: chip.latex || chip.latex_markup || definition.latex || "",
+            preview: chip.preview || definition.preview || "",
             isFavorite: Boolean(chip.isFavorite || chip.is_favorite),
+            isDemo: Boolean(chip.isDemo || chip.is_demo),
             isCustom: Boolean(options.isCustom || chip.isCustom || chip.is_custom || !definition.label)
         };
+    }
+
+    function mergeDemoTemplateCustomChips(chips) {
+        var result = (chips || []).slice();
+        var seen = {};
+
+        result.forEach(function (chip) {
+            if (chip && chip.field) {
+                seen[chip.field] = true;
+            }
+        });
+
+        DEMO_TEMPLATE_CUSTOM_CHIPS.forEach(function (chip) {
+            var normalized;
+
+            if (seen[chip.field]) {
+                return;
+            }
+
+            normalized = normalizeTemplateChip(chip, { isCustom: true });
+            if (normalized) {
+                normalized.isDemo = true;
+                result.push(normalized);
+                seen[normalized.field] = true;
+            }
+        });
+
+        return result;
     }
 
     function applyInitialTemplateChipState() {
@@ -343,8 +436,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
             definition.group = config.group || definition.group;
             definition.kind = config.kind || definition.kind;
+            definition.insertMode = config.insertMode || definition.insertMode || "placeholder";
             definition.basedOn = config.basedOn || "";
             definition.latex = config.latex || definition.latex || "";
+            definition.preview = config.preview || definition.preview || "";
             definition.isFavorite = Boolean(config.isFavorite);
         });
 
@@ -361,10 +456,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 label: chip.label,
                 group: chip.group || "custom",
                 kind: chip.kind || "text",
-                preview: chip.label,
+                insertMode: chip.insertMode || "placeholder",
+                preview: chip.preview || chip.label,
                 basedOn: chip.basedOn || "",
                 latex: chip.latex || "",
                 isFavorite: Boolean(chip.isFavorite),
+                isDemo: Boolean(chip.isDemo),
                 isCustom: true
             };
         });
@@ -416,8 +513,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 label: chip.label,
                 group: chip.group || chip.category_key || "custom",
                 kind: chip.kind || "text",
+                insertMode: chip.insertMode || chip.insert_mode || "placeholder",
                 basedOn: chip.basedOn || chip.based_on || "",
                 latex: chip.latex || chip.latex_markup || "",
+                preview: chip.preview || "",
                 isFavorite: Boolean(chip.isFavorite || chip.is_favorite),
                 isCustom: true
             }, { isCustom: true });
@@ -452,6 +551,7 @@ document.addEventListener("DOMContentLoaded", function () {
             initialPages.push({ html: "" });
         }
 
+        initialPages = trimTrailingEmptyTemplatePageData(initialPages);
         initialPages.forEach(function (page, index) {
             editPagesContainer.appendChild(createTemplateEditPage(page.html, index));
         });
@@ -493,11 +593,11 @@ document.addEventListener("DOMContentLoaded", function () {
             return [];
         }
 
-        return parsed.pages.map(function (page) {
+        return trimTrailingEmptyTemplatePageData(parsed.pages.map(function (page) {
             return { html: normalizeInitialPageHtml(page && page.html ? page.html : "") };
         }).filter(function (page) {
             return page.html || parsed.pages.length === 1;
-        });
+        }));
     }
 
     function readInitialTemplateLockZones() {
@@ -567,21 +667,51 @@ document.addEventListener("DOMContentLoaded", function () {
         pageNodes = holder.querySelectorAll("[data-template-page]");
 
         if (pageNodes.length) {
-            return Array.prototype.map.call(pageNodes, function (node) {
+            return trimTrailingEmptyTemplateHtmlPages(Array.prototype.map.call(pageNodes, function (node) {
                 var content = node.querySelector("[data-template-page-content]");
                 return normalizeInitialPageHtml(content ? content.innerHTML : node.innerHTML);
-            });
+            }));
         }
 
         contentNodes = holder.querySelectorAll("[data-template-page-content]");
 
         if (contentNodes.length) {
-            return Array.prototype.map.call(contentNodes, function (node) {
+            return trimTrailingEmptyTemplateHtmlPages(Array.prototype.map.call(contentNodes, function (node) {
                 return normalizeInitialPageHtml(node.innerHTML);
-            });
+            }));
         }
 
         return [normalizeInitialPageHtml(html)];
+    }
+
+    function trimTrailingEmptyTemplatePageData(pages) {
+        var result = (pages || []).slice();
+
+        while (result.length > 1 && isTemplatePageHtmlEmpty(result[result.length - 1].html || "")) {
+            result.pop();
+        }
+
+        return result;
+    }
+
+    function trimTrailingEmptyTemplateHtmlPages(pages) {
+        var result = (pages || []).slice();
+
+        while (result.length > 1 && isTemplatePageHtmlEmpty(result[result.length - 1] || "")) {
+            result.pop();
+        }
+
+        return result;
+    }
+
+    function isTemplatePageHtmlEmpty(html) {
+        var holder = document.createElement("div");
+
+        holder.innerHTML = html || "";
+        cleanupTemplateDragArtifactsFrom(holder);
+        cleanupTemplateHandArtifactsFrom(holder);
+
+        return isTemplateContentNodeEmpty(holder);
     }
 
     function normalizeInitialPageHtml(html) {
@@ -1889,7 +2019,8 @@ document.addEventListener("DOMContentLoaded", function () {
             insertTemplatePlaceholder(parameter.field, parameter.label, {
                 source: "click",
                 group: parameter.group,
-                kind: parameter.kind
+                kind: parameter.kind,
+                insertMode: parameter.insertMode
             });
         });
 
@@ -2341,6 +2472,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         button.dataset.placeholderLabel = label;
         button.dataset.placeholderKind = config.kind || definition.kind || button.dataset.placeholderKind || "text";
+        button.dataset.placeholderInsertMode = config.insertMode || definition.insertMode || button.dataset.placeholderInsertMode || "placeholder";
         button.textContent = label;
         button.title = label;
 
@@ -2412,6 +2544,10 @@ document.addEventListener("DOMContentLoaded", function () {
             label: definition.label || field,
             group: definition.group || "custom",
             kind: definition.kind || "text",
+            insertMode: definition.insertMode || "placeholder",
+            preview: definition.preview || "",
+            basedOn: definition.basedOn || "",
+            latex: definition.latex || "",
             isCustom: Boolean(getCustomTemplateChip(field))
         };
 
@@ -2450,8 +2586,10 @@ document.addEventListener("DOMContentLoaded", function () {
             targetCategory: config ? config.group : "custom",
             basedOn: config ? config.basedOn : "",
             latex: config ? config.latex || "" : "",
+            preview: config ? config.preview || "" : "",
             isFavorite: config ? Boolean(config.isFavorite) : true,
-            kind: config ? config.kind : "text"
+            kind: config ? config.kind : "text",
+            insertMode: config ? config.insertMode || "placeholder" : "placeholder"
         };
 
         chipNameInput.value = config ? config.label : "";
@@ -2492,8 +2630,10 @@ document.addEventListener("DOMContentLoaded", function () {
             label: config.label || definition.label || field,
             group: config.group || definition.group || "custom",
             kind: config.kind || definition.kind || "text",
+            insertMode: config.insertMode || definition.insertMode || "placeholder",
             basedOn: config.basedOn || definition.basedOn || "",
             latex: config.latex || definition.latex || "",
+            preview: config.preview || definition.preview || "",
             isFavorite: Boolean(config.isFavorite || definition.isFavorite),
             isCustom: Boolean(definition.isCustom || getCustomTemplateChip(field))
         };
@@ -2503,6 +2643,11 @@ document.addEventListener("DOMContentLoaded", function () {
         var label = chipNameInput ? chipNameInput.value.trim() : "";
         var field;
         var chip;
+        var definition;
+        var baseDefinition;
+        var inheritedKind;
+        var inheritedInsertMode;
+        var inheritedPreview;
 
         if (!chipSettingsState) {
             return;
@@ -2519,15 +2664,22 @@ document.addEventListener("DOMContentLoaded", function () {
         field = chipSettingsState.mode === "edit" && chipSettingsState.field ?
             chipSettingsState.field :
             createUniqueCustomChipField(label);
+        definition = getParameterDefinition(field) || {};
+        baseDefinition = chipSettingsState.basedOn ? getParameterDefinition(chipSettingsState.basedOn) || {} : {};
+        inheritedKind = chipSettingsState.kind || definition.kind || baseDefinition.kind || "text";
+        inheritedInsertMode = chipSettingsState.insertMode || definition.insertMode || baseDefinition.insertMode || "placeholder";
+        inheritedPreview = chipSettingsState.preview || definition.preview || baseDefinition.preview || label;
 
         chip = normalizeTemplateChip({
             id: field,
             field: field,
             label: label,
             group: getTemplateChipSaveGroup(),
-            kind: chipSettingsState.kind || "text",
+            kind: inheritedKind,
+            insertMode: inheritedInsertMode,
             basedOn: chipSettingsState.basedOn || "",
             latex: chipLatexInput ? chipLatexInput.value : "",
+            preview: inheritedPreview,
             isFavorite: Boolean(chipSettingsState.isFavorite || chipSettingsState.targetCategory === "favorite")
         }, { isCustom: chipSettingsState.mode !== "edit" || Boolean(getCustomTemplateChip(field)) });
 
@@ -2544,8 +2696,10 @@ document.addEventListener("DOMContentLoaded", function () {
             label: chip.label,
             group: chip.group,
             kind: chip.kind,
+            insertMode: chip.insertMode || "placeholder",
             basedOn: chip.basedOn,
             latex: chip.latex || "",
+            preview: chip.preview || "",
             isFavorite: chip.isFavorite,
             isCustom: chip.isCustom
         };
@@ -2554,7 +2708,8 @@ document.addEventListener("DOMContentLoaded", function () {
         TEMPLATE_PARAMETER_REGISTRY[field].label = chip.label;
         TEMPLATE_PARAMETER_REGISTRY[field].group = chip.group;
         TEMPLATE_PARAMETER_REGISTRY[field].kind = chip.kind;
-        TEMPLATE_PARAMETER_REGISTRY[field].preview = TEMPLATE_PARAMETER_REGISTRY[field].preview || chip.label;
+        TEMPLATE_PARAMETER_REGISTRY[field].insertMode = chip.insertMode || "placeholder";
+        TEMPLATE_PARAMETER_REGISTRY[field].preview = chip.preview || TEMPLATE_PARAMETER_REGISTRY[field].preview || chip.label;
         TEMPLATE_PARAMETER_REGISTRY[field].basedOn = chip.basedOn;
         TEMPLATE_PARAMETER_REGISTRY[field].latex = chip.latex || "";
         TEMPLATE_PARAMETER_REGISTRY[field].isFavorite = chip.isFavorite;
@@ -2616,9 +2771,7 @@ document.addEventListener("DOMContentLoaded", function () {
             option.addEventListener("click", function (event) {
                 event.preventDefault();
                 event.stopPropagation();
-                if (chipSettingsState) {
-                    chipSettingsState.basedOn = chip.field;
-                }
+                applyTemplateChipBaseToSettings(chip.field);
                 updateTemplateChipBaseValue();
                 closeTemplateChipBaseDropdown();
             });
@@ -2627,6 +2780,29 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (!chipBaseOptions.childNodes.length) {
             chipBaseOptions.appendChild(createEmptyChipOption());
+        }
+    }
+
+    function applyTemplateChipBaseToSettings(field) {
+        var base;
+
+        if (!chipSettingsState) {
+            return;
+        }
+
+        base = getTemplateChipSettings(field);
+        chipSettingsState.basedOn = field;
+
+        if (!base) {
+            return;
+        }
+
+        chipSettingsState.kind = base.kind || chipSettingsState.kind || "text";
+        chipSettingsState.insertMode = base.insertMode || chipSettingsState.insertMode || "placeholder";
+        chipSettingsState.preview = base.preview || chipSettingsState.preview || "";
+
+        if (chipLatexInput && base.latex && !chipLatexInput.value.trim()) {
+            chipLatexInput.value = base.latex;
         }
     }
 
@@ -2822,6 +2998,7 @@ document.addEventListener("DOMContentLoaded", function () {
             button.dataset.placeholderField = chip.field;
             button.dataset.placeholderLabel = chip.label;
             button.dataset.placeholderKind = chip.kind || "text";
+            button.dataset.placeholderInsertMode = chip.insertMode || "placeholder";
             button.dataset.favoriteChipButton = "true";
             button.textContent = chip.label;
             chipFavoritesList.appendChild(button);
@@ -2863,6 +3040,7 @@ document.addEventListener("DOMContentLoaded", function () {
             button.dataset.placeholderField = chip.field;
             button.dataset.placeholderLabel = chip.label;
             button.dataset.placeholderKind = chip.kind || "text";
+            button.dataset.placeholderInsertMode = chip.insertMode || "placeholder";
             if (chip.source === "admin") {
                 button.dataset.adminTemplateChipButton = "true";
             } else {
@@ -3000,8 +3178,10 @@ document.addEventListener("DOMContentLoaded", function () {
         chip.label = config.label || chip.label;
         chip.group = config.group || chip.group;
         chip.kind = config.kind || chip.kind;
+        chip.insertMode = config.insertMode || chip.insertMode || "placeholder";
         chip.basedOn = config.basedOn || "";
         chip.latex = config.latex || "";
+        chip.preview = config.preview || chip.preview || "";
         chip.isFavorite = Boolean(config.isFavorite);
         registerCustomTemplateChips([chip]);
     }
@@ -3341,6 +3521,8 @@ document.addEventListener("DOMContentLoaded", function () {
             isPaginating = false;
         }
 
+        moved = trimTrailingEmptyTemplatePages({ allowActive: true }) || moved;
+
         if (moved && editor && typeof editor.markCheckpoint === "function") {
             editor.markCheckpoint();
         }
@@ -3426,6 +3608,86 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function isTemporaryDragNode(node) {
         return node && node.nodeType === Node.ELEMENT_NODE && node.matches(TEMP_DRAG_SELECTOR);
+    }
+
+    function trimTrailingEmptyTemplatePages(options) {
+        var pages;
+        var lastPage;
+        var lastContent;
+        var previousContent;
+        var activePage;
+        var removed = false;
+
+        options = options || {};
+
+        if (!editPagesContainer) {
+            return false;
+        }
+
+        pages = getTemplateEditPages();
+        activePage = getCurrentTemplateEditPage();
+
+        while (pages.length > 1) {
+            lastPage = pages[pages.length - 1];
+            lastContent = getTemplatePageContent(lastPage);
+
+            if (!isTemplateContentNodeEmpty(lastContent)) {
+                break;
+            }
+
+            if (lastPage === activePage && !options.allowActive) {
+                break;
+            }
+
+            if (lastPage === activePage) {
+                previousContent = getTemplatePageContent(pages[pages.length - 2]);
+                setCaretToEndOfPage(previousContent);
+            }
+
+            removeNode(lastPage);
+            pages.pop();
+            removed = true;
+        }
+
+        if (removed) {
+            templateLockZones = templateLockZones.filter(function (zone) {
+                return zone.pageIndex < pages.length;
+            });
+            updateTemplatePageNumbers();
+            renderTemplateLockZones();
+        }
+
+        return removed;
+    }
+
+    function isTemplateContentNodeEmpty(node) {
+        var clone;
+
+        if (!node) {
+            return true;
+        }
+
+        clone = node.cloneNode(true);
+        cleanupTemplateDragArtifactsFrom(clone);
+        cleanupTemplateHandArtifactsFrom(clone);
+
+        clone.querySelectorAll([
+            "br",
+            ".table-resize-handle",
+            "[data-editor-caret-marker]",
+            ".editor-caret-marker",
+            ".template-page-number",
+            ".template-lock-layer",
+            ".template-lock-zone"
+        ].join(", ")).forEach(function (item) {
+            item.remove();
+        });
+
+        if (clone.querySelector("img, table, figure, hr, .template-placeholder, .template-page-break, .template-working-chip, [data-template-working-chip]")) {
+            return false;
+        }
+
+        return !clone.textContent.replace(/\u00a0/g, " ").trim();
     }
 
     function ensureTemplatePage(index) {
@@ -3642,7 +3904,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function getTemplatePagesData() {
-        return getTemplatePageContents().map(function (content, index) {
+        return trimTrailingEmptyTemplatePageData(getTemplatePageContents().map(function (content, index) {
             var clone = content.cloneNode(true);
 
             cleanupTemplateDragArtifactsFrom(clone);
@@ -3658,7 +3920,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 html: clone.innerHTML,
                 orientation: "portrait"
             };
-        });
+        }));
     }
 
     function serializeTemplatePagesHtml(pages) {
@@ -3688,15 +3950,19 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function getSerializableTemplateCustomChips() {
-        return customTemplateChips.map(function (chip) {
+        return customTemplateChips.filter(function (chip) {
+            return !chip.isDemo;
+        }).map(function (chip) {
             return {
                 id: chip.id || chip.field,
                 field: chip.field,
                 label: chip.label,
                 group: chip.group || "custom",
                 kind: chip.kind || "text",
+                insertMode: chip.insertMode || "placeholder",
                 basedOn: chip.basedOn || "",
                 latex: chip.latex || "",
+                preview: chip.preview || "",
                 isFavorite: Boolean(chip.isFavorite)
             };
         });
@@ -3717,8 +3983,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 label: config.label || "",
                 group: config.group || "",
                 kind: config.kind || "text",
+                insertMode: config.insertMode || "placeholder",
                 basedOn: config.basedOn || "",
                 latex: config.latex || "",
+                preview: config.preview || "",
                 isFavorite: Boolean(config.isFavorite),
                 isCustom: Boolean(config.isCustom)
             };
@@ -3744,12 +4012,13 @@ document.addEventListener("DOMContentLoaded", function () {
             field: field,
             label: label,
             group: options.group,
-            kind: options.kind
+            kind: options.kind,
+            insertMode: options.insertMode
         });
 
         range = normalizeTemplateDropRange(options.range) || getRestoredEditorRange() || createEndRange();
 
-        if (insertTemplatePlaceholderAtRange(parameter, range)) {
+        if (insertTemplateParameterAtRange(parameter, range)) {
             paginateTemplateEditor(getActiveTemplatePageContent());
             markTemplateDirty("placeholder");
         }
@@ -3762,8 +4031,165 @@ document.addEventListener("DOMContentLoaded", function () {
             range: range,
             source: "drag",
             group: parameterData.group,
-            kind: parameterData.kind
+            kind: parameterData.kind,
+            insertMode: parameterData.insertMode
         });
+    }
+
+    function insertTemplateParameterAtRange(parameter, range) {
+        if (shouldInsertTemplateWorkingBlock(parameter)) {
+            return insertTemplateWorkingBlockAtRange(parameter, range);
+        }
+
+        return insertTemplatePlaceholderAtRange(parameter, range);
+    }
+
+    function shouldInsertTemplateWorkingBlock(parameter) {
+        if (!parameter || parameter.field === "page_break") {
+            return false;
+        }
+
+        return parameter.insertMode === "block" || isTemplateWorkingChipKind(parameter.kind);
+    }
+
+    function isTemplateWorkingChipKind(kind) {
+        return [
+            "status_badge",
+            "kpi_cards",
+            "risk_matrix",
+            "bar_chart",
+            "approval_block"
+        ].indexOf(kind) !== -1;
+    }
+
+    function insertTemplateWorkingBlockAtRange(parameter, range) {
+        var node;
+        var spacer;
+        var paragraph;
+
+        if (!parameter || !parameter.field || !range) {
+            return false;
+        }
+
+        node = createTemplateWorkingChipElement(parameter);
+        if (!node) {
+            return false;
+        }
+
+        if (editor && typeof editor.markCheckpoint === "function") {
+            editor.markCheckpoint();
+        }
+
+        try {
+            range = range.cloneRange();
+            range.collapse(true);
+            range.deleteContents();
+
+            if (isTemplateWorkingBlockNode(node)) {
+                range = normalizeTemplateWorkingBlockRange(range);
+            }
+
+            range.insertNode(node);
+
+            if (isTemplateWorkingBlockNode(node)) {
+                paragraph = document.createElement("p");
+                paragraph.appendChild(document.createElement("br"));
+                node.parentNode.insertBefore(paragraph, node.nextSibling);
+                setCaretInsideNode(paragraph);
+            } else {
+                spacer = document.createTextNode("\u00a0");
+                node.parentNode.insertBefore(spacer, node.nextSibling);
+                setCaretAfterNode(spacer);
+            }
+
+            if (editor && typeof editor.markCheckpoint === "function") {
+                editor.markCheckpoint();
+            }
+
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function normalizeTemplateWorkingBlockRange(range) {
+        var content;
+        var block;
+        var adjustedRange;
+
+        if (!range) {
+            return range;
+        }
+
+        content = getTemplatePageContentForNode(range.commonAncestorContainer);
+        block = getClosestTemplateInlineBlock(range.commonAncestorContainer, content);
+
+        if (!block) {
+            return range;
+        }
+
+        adjustedRange = document.createRange();
+        adjustedRange.setStartAfter(block);
+        adjustedRange.collapse(true);
+        return adjustedRange;
+    }
+
+    function getClosestTemplateInlineBlock(node, content) {
+        var element = node && node.nodeType === Node.ELEMENT_NODE ? node : (node ? node.parentNode : null);
+        var blockTags = {
+            P: true,
+            H1: true,
+            H2: true,
+            H3: true,
+            H4: true,
+            H5: true,
+            H6: true,
+            LI: true,
+            BLOCKQUOTE: true
+        };
+
+        while (element && element !== content && element !== editablePage) {
+            if (blockTags[element.tagName]) {
+                return element;
+            }
+
+            element = element.parentNode;
+        }
+
+        return null;
+    }
+
+    function createTemplateWorkingChipElement(parameter) {
+        var normalized = normalizeTemplateParameter(parameter || {});
+        var node = null;
+
+        if (normalized.kind === "status_badge") {
+            node = createPreviewStatusBadge();
+        } else if (normalized.kind === "kpi_cards") {
+            node = createPreviewKpiCards();
+        } else if (normalized.kind === "risk_matrix") {
+            node = createPreviewRiskMatrix();
+        } else if (normalized.kind === "bar_chart") {
+            node = createPreviewBarChart();
+        } else if (normalized.kind === "approval_block") {
+            node = createPreviewApprovalBlock();
+        }
+
+        if (!node || !node.classList) {
+            return null;
+        }
+
+        node.classList.add("template-working-chip");
+        node.classList.toggle("template-working-chip-inline", !isTemplateWorkingBlockNode(node));
+        node.classList.toggle("template-working-chip-block", isTemplateWorkingBlockNode(node));
+        node.dataset.templateWorkingChip = normalized.kind;
+        node.dataset.templateWorkingChipField = normalized.field;
+        node.dataset.templateWorkingChipLabel = normalized.label;
+        return node;
+    }
+
+    function isTemplateWorkingBlockNode(node) {
+        return Boolean(node && node.nodeType === Node.ELEMENT_NODE && node.tagName !== "SPAN");
     }
 
     function insertTemplatePlaceholderAtRange(parameter, range) {
@@ -4266,8 +4692,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
         var pages = getTemplateEditPages();
         var currentIndex = pages.indexOf(currentPage);
-        var nextPage = currentIndex === -1 ? null : getNextTemplateEditPage(currentPage) || ensureTemplatePage(currentIndex + 1);
+        var nextPage = currentIndex === -1 ? null : getNextTemplateEditPage(currentPage);
         var nextContent = nextPage ? getTemplatePageContent(nextPage) : null;
+
+        if (!nextContent) {
+            return false;
+        }
 
         updateTemplatePageNumbers();
         return setCaretToStartOfPage(nextContent);
@@ -4438,12 +4868,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function getParameterDataFromButton(button) {
         var group = button.closest("[data-placeholder-group]");
+        var definition = getParameterDefinition(button.dataset.placeholderField || "") || {};
 
         return {
             field: button.dataset.placeholderField || "",
             label: button.dataset.placeholderLabel || button.textContent.trim(),
             group: group ? group.dataset.parameterGroup || "" : "",
-            kind: button.dataset.placeholderKind || (getParameterDefinition(button.dataset.placeholderField || "") || {}).kind || "text",
+            kind: button.dataset.placeholderKind || definition.kind || "text",
+            insertMode: button.dataset.placeholderInsertMode || definition.insertMode || "placeholder",
             type: button.dataset.placeholderType || "placeholder",
             source: "panel"
         };
@@ -4455,6 +4887,7 @@ document.addEventListener("DOMContentLoaded", function () {
             label: placeholder.dataset.label || getTemplatePlaceholderLabel(placeholder),
             group: placeholder.dataset.group || "",
             kind: placeholder.dataset.kind || (getParameterDefinition(placeholder.dataset.field || "") || {}).kind || "text",
+            insertMode: "placeholder",
             type: "placeholder",
             placeholderId: ensureTemplatePlaceholderId(placeholder),
             source: "document"
@@ -4602,12 +5035,14 @@ document.addEventListener("DOMContentLoaded", function () {
         var label = parameter.label || definition.label || parameter.field;
         var group = parameter.group || definition.group || "";
         var kind = parameter.kind || definition.kind || "text";
+        var insertMode = parameter.insertMode || definition.insertMode || "placeholder";
 
         return {
             field: parameter.field,
             label: label,
             group: group,
-            kind: kind
+            kind: kind,
+            insertMode: insertMode
         };
     }
 
@@ -4977,24 +5412,44 @@ document.addEventListener("DOMContentLoaded", function () {
             return createPreviewPageBreak();
         }
 
+        if (kind === "status_badge") {
+            return createPreviewStatusBadge();
+        }
+
+        if (kind === "kpi_cards") {
+            return createPreviewKpiCards();
+        }
+
+        if (kind === "risk_matrix") {
+            return createPreviewRiskMatrix();
+        }
+
+        if (kind === "bar_chart") {
+            return createPreviewBarChart();
+        }
+
+        if (kind === "approval_block") {
+            return createPreviewApprovalBlock();
+        }
+
         return document.createTextNode(getPreviewTextValue(field, fallbackLabel));
     }
 
     function getPreviewTextValue(field, fallbackLabel) {
         var definition = getParameterDefinition(field);
         var values = {
-            report_title: "Тестовый отчет",
+            report_title: "Корпоративный отчет",
             author: "Пользователь",
             report_date: "22.05.2026",
             tag: "Учебный",
             report_type: "Универсальный отчет",
-            imported_paragraphs: "Тестовый абзац импортированных данных.",
-            imported_headings: "Тестовый заголовок",
+            imported_paragraphs: "Фрагмент импортированных данных.",
+            imported_headings: "Заголовок раздела",
             generated_at: getTodayDisplay(),
             page_number: "1",
             template_title: titleInput && titleInput.value.trim() ? titleInput.value.trim() : "Название шаблона",
             formula: "E = mc²",
-            summary_block: "Сводный блок с тестовыми показателями.",
+            summary_block: "Сводный блок с рабочими показателями.",
             indent: "Отступ",
             section_number: "1.1",
             custom_placeholder: "Пользовательское значение"
@@ -5058,6 +5513,126 @@ document.addEventListener("DOMContentLoaded", function () {
         box.className = "template-preview-asset";
         box.textContent = label || "Графический блок";
         return box;
+    }
+
+    function createPreviewStatusBadge() {
+        var badge = document.createElement("span");
+
+        badge.className = "template-preview-status-badge";
+        badge.textContent = "Статус проекта: В работе";
+        return badge;
+    }
+
+    function createPreviewKpiCards() {
+        var wrap = document.createElement("div");
+        var items = [
+            ["План", "100%", "Целевой объём"],
+            ["Факт", "96%", "Выполнение"],
+            ["Риски", "4", "Открытые пункты"]
+        ];
+
+        wrap.className = "template-preview-kpi-cards";
+        items.forEach(function (item) {
+            var card = document.createElement("div");
+            var label = document.createElement("span");
+            var value = document.createElement("strong");
+            var note = document.createElement("span");
+
+            label.textContent = item[0];
+            value.textContent = item[1];
+            note.textContent = item[2];
+            note.className = "template-preview-kpi-note";
+            card.appendChild(label);
+            card.appendChild(value);
+            card.appendChild(note);
+            wrap.appendChild(card);
+        });
+
+        return wrap;
+    }
+
+    function createPreviewRiskMatrix() {
+        var table = document.createElement("table");
+        var rows = [
+            ["Вероятность \\ Влияние", "Низкое", "Среднее", "Высокое"],
+            ["Высокая", "Средний", "Высокий", "Критический"],
+            ["Средняя", "Низкий", "Средний", "Высокий"],
+            ["Низкая", "Низкий", "Низкий", "Средний"]
+        ];
+
+        table.className = "template-preview-risk-matrix";
+        rows.forEach(function (row, rowIndex) {
+            var tr = document.createElement("tr");
+
+            row.forEach(function (cell, cellIndex) {
+                var cellNode = document.createElement(rowIndex === 0 || cellIndex === 0 ? "th" : "td");
+
+                cellNode.textContent = cell;
+                if (rowIndex > 0 && cellIndex > 0) {
+                    cellNode.dataset.riskLevel = cell.toLowerCase();
+                }
+                tr.appendChild(cellNode);
+            });
+
+            table.appendChild(tr);
+        });
+
+        return table;
+    }
+
+    function createPreviewBarChart() {
+        var chart = document.createElement("div");
+        var bars = [
+            ["Q1", 72],
+            ["Q2", 84],
+            ["Q3", 68],
+            ["Q4", 91]
+        ];
+
+        chart.className = "template-preview-bar-chart";
+        bars.forEach(function (bar) {
+            var item = document.createElement("div");
+            var label = document.createElement("span");
+            var track = document.createElement("strong");
+            var fill = document.createElement("i");
+            var value = document.createElement("em");
+
+            label.textContent = bar[0];
+            fill.style.width = bar[1] + "%";
+            value.textContent = bar[1] + "%";
+            track.appendChild(fill);
+            item.appendChild(label);
+            item.appendChild(track);
+            item.appendChild(value);
+            chart.appendChild(item);
+        });
+
+        return chart;
+    }
+
+    function createPreviewApprovalBlock() {
+        var table = document.createElement("table");
+        var rows = [
+            ["Роль", "Ответственный", "Подпись"],
+            ["Подготовил", "Исполнитель", "____________"],
+            ["Проверил", "Руководитель", "____________"],
+            ["Утвердил", "Заказчик", "____________"]
+        ];
+
+        table.className = "template-preview-approval-block";
+        rows.forEach(function (row, rowIndex) {
+            var tr = document.createElement("tr");
+
+            row.forEach(function (cell) {
+                var cellNode = document.createElement(rowIndex === 0 ? "th" : "td");
+                cellNode.textContent = cell;
+                tr.appendChild(cellNode);
+            });
+
+            table.appendChild(tr);
+        });
+
+        return table;
     }
 
     function createPreviewPageBreak() {

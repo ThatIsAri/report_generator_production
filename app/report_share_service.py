@@ -2,7 +2,7 @@ from sqlalchemy import inspect, text
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.extensions import db
-from app.models import GroupReportAccess, Report, ReportShare, User, UserGroup
+from app.models import GroupReportAccess, Report, ReportShare, User, UserGroup, UserGroupMember
 from app.organization_service import (
     ensure_organization_data,
     ensure_user_organization_defaults,
@@ -99,7 +99,7 @@ def ensure_report_share_indexes():
 
 def get_current_user_with_organization(user_id):
     ensure_organization_data()
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
 
     if not user:
         return None
@@ -115,10 +115,38 @@ def can_manage_report_shares(report, user):
     if normalize_user_role(user.role) == "admin":
         return True
 
-    # У отчетов пока нет owner_id, поэтому на этом этапе любой авторизованный
-    # участник организации может менять доступ. При появлении владельца отчета
-    # проверку нужно сузить до owner/admin.
-    return True
+    direct_share = (
+        ReportShare.query
+        .filter_by(report_id=report.id, user_id=user.id)
+        .filter(ReportShare.access_level.in_(("owner", "manage", "edit")))
+        .first()
+    )
+
+    if direct_share:
+        return True
+
+    group_ids = [
+        group_id
+        for (group_id,) in (
+            db.session.query(UserGroupMember.group_id)
+            .join(UserGroup, UserGroupMember.group_id == UserGroup.id)
+            .filter(UserGroupMember.user_id == user.id)
+            .filter(UserGroup.organization_id == user.organization_id)
+            .filter(UserGroup.is_active == 1)
+            .all()
+        )
+    ]
+
+    if not group_ids:
+        return False
+
+    return bool(
+        GroupReportAccess.query
+        .filter(GroupReportAccess.report_id == report.id)
+        .filter(GroupReportAccess.group_id.in_(group_ids))
+        .filter(GroupReportAccess.access_level.in_(("owner", "manage", "edit")))
+        .first()
+    )
 
 
 def get_report_shares(report_id):

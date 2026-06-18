@@ -1,5 +1,4 @@
 import json
-from datetime import datetime
 
 from flask import Blueprint, jsonify, render_template, request, session, url_for
 from sqlalchemy import inspect, text
@@ -14,6 +13,7 @@ from app.template_taxonomy_service import (
     get_template_type_names,
     normalize_template_type,
 )
+from app.time_utils import utc_now
 
 
 templates_bp = Blueprint("templates", __name__)
@@ -64,7 +64,7 @@ def api_template_chip_settings():
     organization_id = session.get("organization_id")
 
     if not organization_id and session.get("user_id"):
-        current_user = User.query.get(session.get("user_id"))
+        current_user = db.session.get(User, session.get("user_id"))
 
         if current_user:
             ensure_user_organization_defaults(current_user)
@@ -92,7 +92,7 @@ def api_create_template():
         return jsonify({"success": False, "error": "Введите название шаблона"}), 400
 
     if source_template_id:
-        source_template = Template.query.get(source_template_id)
+        source_template = db.session.get(Template, source_template_id)
 
         if not source_template:
             return jsonify({"success": False, "error": "Шаблон-основа не найден"}), 404
@@ -152,7 +152,7 @@ def api_update_template(template_id):
     if "latex_template" in data:
         template.latex_template = data.get("latex_template") or None
 
-    template.updated_at = datetime.utcnow()
+    template.updated_at = utc_now()
     db.session.commit()
 
     return jsonify(
@@ -322,7 +322,7 @@ def _get_session_organization_id():
     if not session.get("user_id"):
         return None
 
-    current_user = User.query.get(session.get("user_id"))
+    current_user = db.session.get(User, session.get("user_id"))
 
     if not current_user:
         return None

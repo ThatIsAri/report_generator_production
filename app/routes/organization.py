@@ -1,9 +1,10 @@
 from flask import Blueprint, jsonify, session
 
 from app.auth import login_required
+from app.extensions import db
 from app.models import Organization, User, UserGroup
 from app.organization_service import (
-    ensure_default_test_organization,
+    ensure_default_organization,
     ensure_organization_data,
     ensure_user_organization_defaults,
     get_role_label,
@@ -29,6 +30,7 @@ def api_organization_members():
     users = (
         User.query
         .filter(User.organization_id == organization_id)
+        .filter(User.is_active == 1)
         .order_by(User.id.asc())
         .all()
     )
@@ -45,10 +47,10 @@ def api_organization_members():
 @login_required
 def api_current_organization():
     organization_id = get_current_user_organization_id()
-    organization = Organization.query.get(organization_id)
+    organization = db.session.get(Organization, organization_id)
 
     if not organization:
-        organization = ensure_default_test_organization()
+        organization = ensure_default_organization()
 
     return jsonify({
         "organization": serialize_organization(organization)
@@ -104,15 +106,15 @@ def api_organization_shared_reports():
 def get_current_user_organization_id():
     ensure_organization_data()
 
-    current_user = User.query.get(session.get("user_id"))
+    current_user = db.session.get(User, session.get("user_id"))
 
     if not current_user:
-        return ensure_default_test_organization().id
+        return ensure_default_organization().id
 
     ensure_user_organization_defaults(current_user)
     session["organization_id"] = current_user.organization_id
 
-    return current_user.organization_id or ensure_default_test_organization().id
+    return current_user.organization_id or ensure_default_organization().id
 
 
 def serialize_organization(organization):

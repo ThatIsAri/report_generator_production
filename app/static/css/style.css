@@ -5629,27 +5629,54 @@ body.modal-open {
 .dashboard-preview-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 11pt;
+    font-size: 10.5pt;
+    line-height: 1.35;
 }
 
-.dashboard-preview-table td {
-    padding: 6px 8px;
+.dashboard-preview-table td,
+.dashboard-preview-table th {
+    min-width: 0;
+    padding: 5px 6px;
     border: 1px solid #111827;
+    overflow-wrap: anywhere;
     vertical-align: top;
+    white-space: normal;
+    word-break: break-word;
 }
 
-.dashboard-document-sheet .editor-table {
+.dashboard-document-sheet table {
     width: 100%;
     max-width: 100%;
     table-layout: fixed;
-    border-collapse: collapse;
+    border-collapse: collapse !important;
+    border-spacing: 0 !important;
+    font-size: 10.5pt;
+    line-height: 1.35;
 }
 
-.dashboard-document-sheet .editor-table td,
-.dashboard-document-sheet .editor-table th {
-    padding: 4px 6px;
-    border: 1px solid #111827;
+.dashboard-document-sheet table td,
+.dashboard-document-sheet table th {
+    min-width: 0;
+    padding: 4px 5px;
+    border: 1px solid #111827 !important;
+    hyphens: auto;
+    overflow-wrap: anywhere;
     vertical-align: top;
+    white-space: normal !important;
+    word-break: break-word;
+}
+
+.dashboard-document-sheet table th {
+    font-weight: 700;
+}
+
+.dashboard-document-sheet table td *,
+.dashboard-document-sheet table th * {
+    max-width: 100%;
+    hyphens: auto;
+    overflow-wrap: anywhere;
+    white-space: normal !important;
+    word-break: break-word;
 }
 
 .dashboard-document-empty {
@@ -5731,6 +5758,116 @@ body.modal-open {
 .modal-backdrop.is-open .report-preview-modal-actions {
     opacity: 1;
     transform: translateY(0);
+}
+
+.report-open-page {
+    --report-open-toolbar-height: 70px;
+
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    padding-top: var(--report-open-toolbar-height);
+    background: #202323;
+    color: #f8fafc;
+}
+
+.report-open-actions {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 120;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 64px;
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: #202323;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+
+.report-open-action {
+    min-height: 42px;
+    border-radius: 14px;
+}
+
+.report-open-action.is-disabled {
+    opacity: 0.55;
+    pointer-events: none;
+}
+
+.report-open-export-root .report-export-toggle {
+    min-height: 42px;
+    border: 0;
+    border-radius: 14px;
+    background: #ffffff;
+    color: #334155;
+}
+
+.report-open-stage.dashboard-preview-stage {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: calc(100vh - var(--report-open-toolbar-height));
+    border-radius: 0;
+}
+
+.report-open-document.dashboard-preview-document {
+    height: auto;
+    min-height: calc(100vh - var(--report-open-toolbar-height));
+    padding: 30px 18px 48px;
+    overflow: visible;
+}
+
+@media print {
+    .report-open-page {
+        display: block;
+        min-height: auto;
+        padding-top: 0;
+        background: #ffffff;
+        color: #111827;
+    }
+
+    .report-open-actions {
+        display: none;
+    }
+
+    .report-open-stage.dashboard-preview-stage,
+    .report-open-document.dashboard-preview-document {
+        display: block;
+        height: auto;
+        min-height: auto;
+        padding: 0;
+        overflow: visible;
+        background: #ffffff;
+    }
+
+    .report-open-document.dashboard-preview-document {
+        filter: none;
+        opacity: 1;
+    }
+
+    .report-open-document .dashboard-preview-pages {
+        display: block;
+        width: 100%;
+        margin: 0;
+    }
+
+    .report-open-document .dashboard-preview-sheet {
+        min-height: 0;
+        margin: 0;
+        border-radius: 0;
+        box-shadow: none;
+        page-break-after: always;
+        break-after: page;
+    }
+
+    .report-open-document .dashboard-preview-sheet:last-child {
+        page-break-after: auto;
+        break-after: auto;
+    }
 }
 
 .folders-modal {
@@ -9189,6 +9326,8 @@ body.modal-open {
     margin: 16px 0;
     table-layout: fixed;
     border-collapse: collapse;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .editable-page td,
@@ -9201,7 +9340,21 @@ body.modal-open {
     height: 28px;
     padding: 4px 6px;
     border: 1px solid #111827;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+    white-space: normal;
+    word-break: break-word;
     vertical-align: top;
+}
+
+.editable-page td *,
+.editable-page th *,
+.editor-table td *,
+.editor-table th * {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    white-space: normal;
+    word-break: break-word;
 }
 
 .table-resize-handle {
@@ -10612,6 +10765,156 @@ body.modal-open {
 .template-preview-generated-list {
     margin: 8px 0;
     padding-left: 22px;
+}
+
+.template-working-chip {
+    position: relative;
+}
+
+.template-working-chip-block {
+    clear: both;
+}
+
+.template-working-chip-inline {
+    vertical-align: middle;
+}
+
+.template-page-content .template-working-chip-block {
+    margin: 12px 0;
+}
+
+.template-page-content .template-working-chip-inline {
+    margin: 0 2px;
+}
+
+.template-preview-status-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 3px 10px;
+    border: 1px solid #86efac;
+    border-radius: 999px;
+    background: #dcfce7;
+    color: #166534;
+    font-family: "Inter", Arial, sans-serif;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.template-preview-kpi-cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin: 10px 0;
+}
+
+.template-preview-kpi-cards div {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    background: #f8fafc;
+    font-family: "Inter", Arial, sans-serif;
+}
+
+.template-preview-kpi-cards span,
+.template-preview-kpi-cards small {
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.template-preview-kpi-cards strong {
+    color: #0f172a;
+    font-size: 20px;
+    line-height: 1.1;
+}
+
+.template-preview-risk-matrix,
+.template-preview-approval-block {
+    width: 100%;
+    margin: 10px 0;
+    border-collapse: collapse;
+    font-size: 10.5pt;
+    table-layout: fixed;
+}
+
+.template-preview-risk-matrix th,
+.template-preview-risk-matrix td,
+.template-preview-approval-block th,
+.template-preview-approval-block td {
+    padding: 5px 7px;
+    border: 1px solid #334155;
+    overflow-wrap: anywhere;
+    text-align: left;
+    vertical-align: top;
+}
+
+.template-preview-risk-matrix th,
+.template-preview-approval-block th {
+    background: #f1f5f9;
+    font-weight: 700;
+}
+
+.template-preview-risk-matrix [data-risk-level="низкий"] {
+    background: #dcfce7;
+}
+
+.template-preview-risk-matrix [data-risk-level="средний"] {
+    background: #fef9c3;
+}
+
+.template-preview-risk-matrix [data-risk-level="высокий"] {
+    background: #ffedd5;
+}
+
+.template-preview-risk-matrix [data-risk-level="критический"] {
+    background: #fee2e2;
+}
+
+.template-preview-bar-chart {
+    display: grid;
+    gap: 7px;
+    margin: 10px 0;
+    padding: 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    background: #f8fafc;
+    font-family: "Inter", Arial, sans-serif;
+}
+
+.template-preview-bar-chart div {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr) 42px;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.template-preview-bar-chart span,
+.template-preview-bar-chart em {
+    color: #475569;
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 800;
+}
+
+.template-preview-bar-chart strong {
+    position: relative;
+    display: block;
+    height: 9px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #dbeafe;
+}
+
+.template-preview-bar-chart i {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: #2563eb;
 }
 
 .template-preview-asset {

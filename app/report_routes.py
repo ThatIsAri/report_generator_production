@@ -4,6 +4,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from flask import (
+    abort,
     Blueprint,
     current_app,
     flash,
@@ -51,11 +52,13 @@ from app.report_share_service import (
     can_manage_report_shares,
     ensure_report_share_schema,
     get_current_user_with_organization,
+    get_user_display_name,
     get_report_shares,
     replace_report_access,
 )
 from app.scanners.scan_dispatcher import scan_file_to_blocks
 from app.template_taxonomy_service import get_template_taxonomy_payload
+from app.time_utils import utc_now
 from app.user_action_log_service import log_user_action
 
 
@@ -125,7 +128,12 @@ def prepare_folder_schema():
 
 @reports_bp.route("/")
 def index():
-    reports = Report.query.order_by(Report.updated_at.desc(), Report.created_at.desc()).all()
+    current_user = get_current_user_with_organization(session.get("user_id"))
+    reports = (
+        _filter_accessible_reports(Report.query, current_user)
+        .order_by(Report.updated_at.desc(), Report.created_at.desc())
+        .all()
+    )
     folders = Folder.query.order_by(Folder.parent_id.asc(), Folder.name.asc()).all()
     templates = Template.query.order_by(Template.updated_at.desc(), Template.created_at.desc()).all()
     organization_id = _get_session_organization_id()
@@ -144,8 +152,8 @@ def index():
         template_options=_build_report_template_options(templates),
         template_taxonomy=get_template_taxonomy_payload(organization_id),
         create_template_options=CREATE_TEMPLATE_OPTIONS,
-        today_iso=datetime.utcnow().date().isoformat(),
-        today_display=datetime.utcnow().strftime("%d.%m.%Y"),
+        today_iso=utc_now().date().isoformat(),
+        today_display=utc_now().strftime("%d.%m.%Y"),
     )
 
 
@@ -197,7 +205,7 @@ def api_create_folder():
     if not name:
         return jsonify({"success": False, "error": "Введите название папки"}), 400
 
-    if parent_id and not Folder.query.get(parent_id):
+    if parent_id and not db.session.get(Folder, parent_id):
         return jsonify({"success": False, "error": "Родительская папка не найдена"}), 400
 
     folder = Folder(name=name, parent_id=parent_id)
@@ -243,8 +251,9 @@ def api_search_folders():
 def api_get_folder_reports(folder_id):
     _ensure_folder_schema()
     Folder.query.get_or_404(folder_id)
+    current_user = get_current_user_with_organization(session.get("user_id"))
     reports = (
-        Report.query.filter_by(folder_id=folder_id)
+        _filter_accessible_reports(Report.query.filter_by(folder_id=folder_id), current_user)
         .order_by(Report.updated_at.desc(), Report.created_at.desc())
         .all()
     )
@@ -261,8 +270,9 @@ def api_get_folder_reports(folder_id):
 def api_search_folder_reports(folder_id):
     _ensure_folder_schema()
     Folder.query.get_or_404(folder_id)
+    current_user = get_current_user_with_organization(session.get("user_id"))
     query = (request.args.get("q") or "").strip()
-    reports_query = Report.query.filter_by(folder_id=folder_id)
+    reports_query = _filter_accessible_reports(Report.query.filter_by(folder_id=folder_id), current_user)
 
     if query:
         search_pattern = f"%{query}%"
@@ -288,12 +298,17 @@ def api_search_folder_reports(folder_id):
 def api_update_report_folder(report_id):
     _ensure_folder_schema()
     report = Report.query.get_or_404(report_id)
+    current_user = get_current_user_with_organization(session.get("user_id"))
+
+    if not _can_access_report(report, current_user):
+        return _report_access_denied_json()
+
     data = request.get_json(silent=True) or {}
     folder_id = _normalize_optional_int(data.get("folder_id"))
     folder = None
 
     if folder_id:
-        folder = Folder.query.get(folder_id)
+        folder = db.session.get(Folder, folder_id)
 
         if not folder:
             return jsonify({"success": False, "error": "Папка не найдена"}), 404
@@ -319,6 +334,11 @@ def api_update_report_folder(report_id):
 def api_update_report_link(report_id):
     _ensure_folder_schema()
     report = Report.query.get_or_404(report_id)
+    current_user = get_current_user_with_organization(session.get("user_id"))
+
+    if not _can_access_report(report, current_user):
+        return _report_access_denied_json()
+
     data = request.get_json(silent=True) or {}
     linked_report_id = _normalize_optional_int(data.get("linked_report_id"))
     linked_report = None
@@ -327,10 +347,13 @@ def api_update_report_link(report_id):
         if linked_report_id == report.id:
             return jsonify({"success": False, "error": "Нельзя связать отчет сам с собой"}), 400
 
-        linked_report = Report.query.get(linked_report_id)
+        linked_report = db.session.get(Report, linked_report_id)
 
         if not linked_report:
             return jsonify({"success": False, "error": "Связанный отчет не найден"}), 404
+
+        if not _can_access_report(linked_report, current_user):
+            return _report_access_denied_json("Недостаточно прав для связи с выбранным отчетом.")
 
     report.linked_report_id = linked_report.id if linked_report else None
     db.session.commit()
@@ -348,8 +371,13 @@ def api_update_report_link(report_id):
 @reports_bp.route("/api/reports/link-tree")
 def api_report_link_tree():
     _ensure_folder_schema()
+    current_user = get_current_user_with_organization(session.get("user_id"))
     folders = Folder.query.order_by(Folder.parent_id.asc(), Folder.name.asc()).all()
-    reports = Report.query.order_by(Report.report_title.asc(), Report.created_at.asc()).all()
+    reports = (
+        _filter_accessible_reports(Report.query, current_user)
+        .order_by(Report.report_title.asc(), Report.created_at.asc())
+        .all()
+    )
 
     return jsonify(
         {
@@ -364,6 +392,7 @@ def api_report_link_tree():
 @reports_bp.route("/reports/create", methods=["POST"])
 def create_report():
     _ensure_folder_schema()
+    current_user = get_current_user_with_organization(session.get("user_id"))
     payload = request.get_json(silent=True) if request.is_json else None
 
     if payload:
@@ -417,7 +446,7 @@ def create_report():
             folder_id = None
 
     if folder_id:
-        folder = Folder.query.get(folder_id)
+        folder = db.session.get(Folder, folder_id)
 
         if not folder:
             folder_id = None
@@ -428,8 +457,13 @@ def create_report():
         except ValueError:
             linked_report_id = None
 
-    if linked_report_id and not Report.query.get(linked_report_id):
-        linked_report_id = None
+    if linked_report_id:
+        linked_report = db.session.get(Report, linked_report_id)
+
+        if not linked_report:
+            linked_report_id = None
+        elif not _can_access_report(linked_report, current_user):
+            return _create_report_error("Недостаточно прав для связи с выбранным отчетом")
 
     imported_payloads = []
 
@@ -449,7 +483,7 @@ def create_report():
 
     report = Report(
         report_title=report_title,
-        report_author="Пользователь",
+        report_author=get_user_display_name(current_user) if current_user else "Пользователь",
         report_date=report_date,
         tag=tag or None,
         template_key=template_key or "generic_report_default",
@@ -546,9 +580,14 @@ def create_report():
         )
     )
 
-    current_user = get_current_user_with_organization(session.get("user_id"))
     if current_user:
-        replace_report_access(report, share_user_ids, share_group_ids, current_user)
+        replace_report_access(
+            report,
+            _include_current_user_share(share_user_ids, current_user),
+            share_group_ids,
+            current_user,
+        )
+        _grant_current_user_manage_access(report, current_user)
 
     db.session.commit()
 
@@ -556,7 +595,8 @@ def create_report():
         return jsonify(
             {
                 "success": True,
-                "report_id": draft.id,
+                "report_id": report.id,
+                "draft_id": draft.id,
                 "redirect_url": url_for("reports.compose_preview", draft_id=draft.id),
             }
         )
@@ -568,6 +608,10 @@ def create_report():
 @reports_bp.route("/reports/<int:draft_id>/compose-preview")
 def compose_preview(draft_id):
     draft = ReportDraft.query.get_or_404(draft_id)
+
+    if not _can_access_draft(draft, get_current_user_with_organization(session.get("user_id"))):
+        abort(403)
+
     block_models = (
         ImportedDataBlock.query.filter_by(draft_id=draft.id, is_deleted=False)
         .order_by(ImportedDataBlock.order_index.asc())
@@ -583,7 +627,11 @@ def compose_preview(draft_id):
 
 @reports_bp.route("/api/reports/<int:draft_id>/blocks")
 def api_report_blocks(draft_id):
-    ReportDraft.query.get_or_404(draft_id)
+    draft = ReportDraft.query.get_or_404(draft_id)
+
+    if not _can_access_draft(draft, get_current_user_with_organization(session.get("user_id"))):
+        return _report_access_denied_json()
+
     block_models = (
         ImportedDataBlock.query.filter_by(draft_id=draft_id, is_deleted=False)
         .order_by(ImportedDataBlock.order_index.asc())
@@ -601,6 +649,10 @@ def api_report_blocks(draft_id):
 @reports_bp.route("/api/reports/blocks/<int:block_id>", methods=["PATCH"])
 def api_update_imported_block(block_id):
     block = ImportedDataBlock.query.get_or_404(block_id)
+
+    if not _can_access_block(block, get_current_user_with_organization(session.get("user_id"))):
+        return _report_access_denied_json()
+
     data = request.get_json(silent=True) or {}
 
     if "is_deleted" in data:
@@ -621,6 +673,10 @@ def api_update_imported_block(block_id):
 @reports_bp.route("/reports/blocks/<int:block_id>/delete", methods=["POST"])
 def delete_imported_block(block_id):
     block = ImportedDataBlock.query.get_or_404(block_id)
+
+    if not _can_access_block(block, get_current_user_with_organization(session.get("user_id"))):
+        return _report_access_denied_json()
+
     block.is_deleted = True
     db.session.commit()
 
@@ -631,6 +687,10 @@ def delete_imported_block(block_id):
 @reports_bp.route("/reports/blocks/<int:block_id>/restore", methods=["POST"])
 def restore_imported_block(block_id):
     block = ImportedDataBlock.query.get_or_404(block_id)
+
+    if not _can_access_block(block, get_current_user_with_organization(session.get("user_id"))):
+        return _report_access_denied_json()
+
     block.is_deleted = False
     db.session.commit()
 
@@ -640,7 +700,11 @@ def restore_imported_block(block_id):
 @reports_bp.route("/api/reports/<int:draft_id>/blocks/order", methods=["PATCH", "POST"])
 @reports_bp.route("/reports/<int:draft_id>/blocks/reorder", methods=["POST"])
 def reorder_imported_blocks(draft_id):
-    ReportDraft.query.get_or_404(draft_id)
+    draft = ReportDraft.query.get_or_404(draft_id)
+
+    if not _can_access_draft(draft, get_current_user_with_organization(session.get("user_id"))):
+        return _report_access_denied_json()
+
     data = request.get_json(silent=True) or {}
     block_ids = data.get("block_ids") or []
 
@@ -671,8 +735,12 @@ def reorder_imported_blocks(draft_id):
 @reports_bp.route("/reports/<int:draft_id>/draft", methods=["POST"])
 def save_draft(draft_id):
     draft = ReportDraft.query.get_or_404(draft_id)
+
+    if not _can_access_draft(draft, get_current_user_with_organization(session.get("user_id"))):
+        abort(403)
+
     draft.status = "draft"
-    draft.updated_at = datetime.utcnow()
+    draft.updated_at = utc_now()
     db.session.commit()
 
     accept_header = request.headers.get("Accept", "")
@@ -693,6 +761,10 @@ def save_draft(draft_id):
 @reports_bp.route("/reports/<int:draft_id>/editor")
 def report_editor(draft_id):
     draft = ReportDraft.query.get_or_404(draft_id)
+
+    if not _can_access_draft(draft, get_current_user_with_organization(session.get("user_id"))):
+        abort(403)
+
     block_models = (
         ImportedDataBlock.query.filter_by(draft_id=draft.id, is_deleted=False)
         .order_by(ImportedDataBlock.order_index.asc())
@@ -707,9 +779,29 @@ def report_editor(draft_id):
     )
 
 
+@reports_bp.route("/reports/<int:report_id>/edit")
+def report_editor_for_report(report_id):
+    report = Report.query.get_or_404(report_id)
+    current_user = get_current_user_with_organization(session.get("user_id"))
+
+    if not _can_access_report(report, current_user):
+        abort(403)
+
+    draft = _find_draft_for_report(report.id)
+
+    if not draft:
+        abort(404)
+
+    return redirect(url_for("reports.report_editor", draft_id=draft.id))
+
+
 @reports_bp.route("/api/reports/<int:draft_id>/editor-state")
 def api_get_editor_state(draft_id):
-    ReportDraft.query.get_or_404(draft_id)
+    draft = ReportDraft.query.get_or_404(draft_id)
+
+    if not _can_access_draft(draft, get_current_user_with_organization(session.get("user_id"))):
+        return _report_access_denied_json()
+
     state = _get_or_create_editor_state(draft_id)
 
     return jsonify(
@@ -727,6 +819,10 @@ def api_get_editor_state(draft_id):
 @reports_bp.route("/api/reports/<int:draft_id>/autosave", methods=["POST", "PATCH"])
 def api_update_editor_state(draft_id):
     draft = ReportDraft.query.get_or_404(draft_id)
+
+    if not _can_access_draft(draft, get_current_user_with_organization(session.get("user_id"))):
+        return _report_access_denied_json()
+
     data = request.get_json(silent=True) or {}
     state = _get_or_create_editor_state(draft.id)
 
@@ -740,7 +836,7 @@ def api_update_editor_state(draft_id):
         )
 
     draft.status = "editing"
-    draft.updated_at = datetime.utcnow()
+    draft.updated_at = utc_now()
     db.session.commit()
 
     return jsonify(
@@ -753,7 +849,11 @@ def api_update_editor_state(draft_id):
 
 @reports_bp.route("/api/reports/<int:draft_id>/save-version", methods=["POST"])
 def api_save_report_version(draft_id):
-    ReportDraft.query.get_or_404(draft_id)
+    draft = ReportDraft.query.get_or_404(draft_id)
+
+    if not _can_access_draft(draft, get_current_user_with_organization(session.get("user_id"))):
+        return _report_access_denied_json()
+
     data = request.get_json(silent=True) or {}
     current_version = (
         db.session.query(db.func.max(ReportVersion.version_number))
@@ -776,6 +876,10 @@ def api_save_report_version(draft_id):
 @reports_bp.route("/reports/<int:report_id>/rename", methods=["POST"])
 def rename_report(report_id):
     report = Report.query.get_or_404(report_id)
+
+    if not _can_access_report(report, get_current_user_with_organization(session.get("user_id"))):
+        abort(403)
+
     report_title = request.form.get("report_title", "").strip()
     tag = request.form.get("tag", "").strip()
 
@@ -794,6 +898,9 @@ def rename_report(report_id):
 @reports_bp.route("/reports/<int:report_id>/preview")
 def preview_report(report_id):
     report = Report.query.get_or_404(report_id)
+
+    if not _can_access_report(report, get_current_user_with_organization(session.get("user_id"))):
+        return _report_access_denied_json()
 
     return jsonify(
         {
@@ -814,9 +921,17 @@ def preview_report(report_id):
 
 @reports_bp.route("/api/reports/<int:report_id>/dashboard-preview")
 def dashboard_report_preview(report_id):
+    report = Report.query.get_or_404(report_id)
+
+    if not _can_access_report(report, get_current_user_with_organization(session.get("user_id"))):
+        return _report_access_denied_json()
+
+    return jsonify(_build_dashboard_preview_payload(report))
+
+
+def _build_dashboard_preview_payload(report):
     _ensure_folder_schema()
     ensure_report_share_schema()
-    report = Report.query.get_or_404(report_id)
     draft = _find_draft_for_report(report.id)
     blocks = []
     editor_url = ""
@@ -830,44 +945,43 @@ def dashboard_report_preview(report_id):
             .all()
         )
         blocks = _build_block_views(block_models)
-        editor_url = url_for("reports.report_editor", draft_id=draft.id)
+        editor_url = url_for("reports.report_editor_for_report", report_id=report.id)
         editor_state = _get_or_create_editor_state(draft.id)
         document_html = sanitize_editor_html(editor_state.document_html or "")
         document_json = _sanitize_editor_snapshot(_load_json_text(editor_state.document_json, {}))
 
     template_title = draft.template_title if draft else _get_template_title(report.template_key)
 
-    return jsonify(
-        {
-            "success": True,
-            "id": report.id,
-            "draft_id": draft.id if draft else None,
-            "report_title": report.report_title,
-            "report_author": report.report_author,
-            "report_date": report.report_date.strftime("%d.%m.%Y"),
-            "tag": report.tag or "",
-            "template_key": report.template_key or "",
-            "template_title": template_title,
-            "folder_id": report.folder_id,
-            "folder_name": report.folder.name if report.folder else "",
-            "folder_update_url": url_for("reports.api_update_report_folder", report_id=report.id),
-            "linked_report_id": report.linked_report_id,
-            "linked_report_title": report.linked_report.report_title if report.linked_report else "",
-            "linked_report_url": url_for("reports.view_report", report_id=report.linked_report_id) if report.linked_report_id else "",
-            "link_update_url": url_for("reports.api_update_report_link", report_id=report.id),
-            "shares": get_report_shares(report.id),
-            "shares_url": url_for("reports.api_report_shares", report_id=report.id),
-            "export_url": url_for("reports.export_report", report_id=report.id, export_format="__format__"),
-            "source_type": report.source_type or "manual",
-            "source_filename": report.source_filename or "",
-            "pdf_status": "PDF готов" if report.pdf_filename else "Не сформирован",
-            "created_at": report.created_at.strftime("%d.%m.%Y %H:%M"),
-            "editor_url": editor_url,
-            "document_html": document_html,
-            "document_json": document_json,
-            "blocks": blocks,
-        }
-    )
+    return {
+        "success": True,
+        "id": report.id,
+        "draft_id": draft.id if draft else None,
+        "report_title": report.report_title,
+        "report_author": report.report_author,
+        "report_date": report.report_date.strftime("%d.%m.%Y"),
+        "tag": report.tag or "",
+        "template_key": report.template_key or "",
+        "template_title": template_title,
+        "folder_id": report.folder_id,
+        "folder_name": report.folder.name if report.folder else "",
+        "folder_update_url": url_for("reports.api_update_report_folder", report_id=report.id),
+        "linked_report_id": report.linked_report_id,
+        "linked_report_title": report.linked_report.report_title if report.linked_report else "",
+        "linked_report_url": url_for("reports.view_report", report_id=report.linked_report_id) if report.linked_report_id else "",
+        "link_update_url": url_for("reports.api_update_report_link", report_id=report.id),
+        "shares": get_report_shares(report.id),
+        "shares_url": url_for("reports.api_report_shares", report_id=report.id),
+        "export_url": url_for("reports.export_report", report_id=report.id, export_format="__format__"),
+        "source_type": report.source_type or "manual",
+        "source_filename": report.source_filename or "",
+        "pdf_status": "PDF готов" if report.pdf_filename else "Не сформирован",
+        "created_at": report.created_at.strftime("%d.%m.%Y %H:%M"),
+        "editor_url": editor_url,
+        "open_url": url_for("reports.open_report", report_id=report.id),
+        "document_html": document_html,
+        "document_json": document_json,
+        "blocks": blocks,
+    }
 
 
 @reports_bp.route("/api/reports/<int:report_id>/shares", methods=["GET"])
@@ -967,6 +1081,9 @@ def export_report(report_id, export_format):
 def download_report(report_id):
     report = Report.query.get_or_404(report_id)
 
+    if not _can_access_report(report, get_current_user_with_organization(session.get("user_id"))):
+        abort(403)
+
     if not report.pdf_filename:
         flash("PDF для данного отчета еще не сформирован", "warning")
         return redirect(url_for("reports.index"))
@@ -983,17 +1100,40 @@ def download_report(report_id):
 @reports_bp.route("/reports/<int:report_id>/view")
 def view_report(report_id):
     report = Report.query.get_or_404(report_id)
-    draft = _find_draft_for_report(report.id)
 
-    if draft:
-        return redirect(url_for("reports.report_editor", draft_id=draft.id))
+    if not _can_access_report(report, get_current_user_with_organization(session.get("user_id"))):
+        abort(403)
 
-    return redirect(url_for("reports.index"))
+    return redirect(url_for("reports.open_report", report_id=report.id))
+
+
+@reports_bp.route("/reports/<int:report_id>/open")
+def open_report(report_id):
+    report = Report.query.get_or_404(report_id)
+
+    if not _can_access_report(report, get_current_user_with_organization(session.get("user_id"))):
+        abort(403)
+
+    preview_payload = _build_dashboard_preview_payload(report)
+
+    return render_template(
+        "reports/open.html",
+        report=report,
+        preview_payload=preview_payload,
+        preview_url=url_for("reports.dashboard_report_preview", report_id=report.id),
+        editor_url=preview_payload["editor_url"],
+        export_url=preview_payload["export_url"],
+        back_url=url_for("reports.index"),
+    )
 
 
 @reports_bp.route("/reports/<int:report_id>/delete", methods=["POST"])
 def delete_report(report_id):
     report = Report.query.get_or_404(report_id)
+
+    if not _can_access_report(report, get_current_user_with_organization(session.get("user_id"))):
+        abort(403)
+
     db.session.delete(report)
     db.session.commit()
 
@@ -1003,7 +1143,11 @@ def delete_report(report_id):
 
 @reports_bp.route("/reports/<int:report_id>/share", methods=["POST"])
 def share_report(report_id):
-    Report.query.get_or_404(report_id)
+    report = Report.query.get_or_404(report_id)
+
+    if not _can_access_report(report, get_current_user_with_organization(session.get("user_id"))):
+        abort(403)
+
     flash("Откройте предпросмотр отчета и нажмите кнопку совместного доступа.", "warning")
     return redirect(url_for("reports.index"))
 
@@ -1069,9 +1213,12 @@ def _parse_share_user_ids(raw_value):
     if not raw_value:
         return []
 
+    if isinstance(raw_value, list):
+        return raw_value
+
     try:
         parsed_value = json.loads(raw_value)
-    except ValueError:
+    except (TypeError, ValueError):
         parsed_value = raw_value.split(",")
 
     if isinstance(parsed_value, list):
@@ -1114,7 +1261,7 @@ def _get_template_by_report_key(template_key):
     except (IndexError, ValueError):
         return None
 
-    return Template.query.get(template_id)
+    return db.session.get(Template, template_id)
 
 
 def _build_report_template_options(templates):
@@ -1202,15 +1349,89 @@ def _sanitize_editor_snapshot(snapshot):
     return sanitized_snapshot
 
 
-def _can_export_report(report, user):
+def _filter_accessible_reports(query, user):
+    if _is_admin_user(user):
+        return query
+
+    accessible_ids = _get_accessible_report_ids(user)
+    return query.filter(Report.id.in_(accessible_ids))
+
+
+def _get_accessible_report_ids(user):
+    if not user:
+        return []
+
+    report_ids = {
+        report_id
+        for (report_id,) in (
+            db.session.query(ReportShare.report_id)
+            .filter(ReportShare.user_id == user.id)
+            .all()
+        )
+    }
+
+    group_ids = _get_active_user_group_ids(user)
+    if group_ids:
+        report_ids.update(
+            report_id
+            for (report_id,) in (
+                db.session.query(GroupReportAccess.report_id)
+                .filter(GroupReportAccess.group_id.in_(group_ids))
+                .all()
+            )
+        )
+
+    return list(report_ids)
+
+
+def _can_access_report(report, user):
     if not report or not user:
         return False
 
-    if normalize_user_role(user.role) == "admin":
+    if _is_admin_user(user):
         return True
 
     if ReportShare.query.filter_by(report_id=report.id, user_id=user.id).first():
         return True
+
+    group_ids = _get_active_user_group_ids(user)
+
+    if not group_ids:
+        return False
+
+    return bool(
+        GroupReportAccess.query
+        .filter(GroupReportAccess.report_id == report.id)
+        .filter(GroupReportAccess.group_id.in_(group_ids))
+        .first()
+    )
+
+
+def _can_access_draft(draft, user):
+    if not draft or not user:
+        return False
+
+    if _is_admin_user(user):
+        return True
+
+    if not draft.linked_report_id:
+        return False
+
+    report = db.session.get(Report, draft.linked_report_id)
+    return _can_access_report(report, user)
+
+
+def _can_access_block(block, user):
+    return bool(block and _can_access_draft(block.draft, user))
+
+
+def _can_export_report(report, user):
+    return _can_access_report(report, user)
+
+
+def _get_active_user_group_ids(user):
+    if not user:
+        return []
 
     group_ids = [
         group_id
@@ -1224,15 +1445,34 @@ def _can_export_report(report, user):
         )
     ]
 
-    if not group_ids:
-        return False
+    return group_ids
 
-    return bool(
-        GroupReportAccess.query
-        .filter(GroupReportAccess.report_id == report.id)
-        .filter(GroupReportAccess.group_id.in_(group_ids))
-        .first()
-    )
+
+def _is_admin_user(user):
+    return bool(user and normalize_user_role(user.role) == "admin")
+
+
+def _include_current_user_share(raw_user_ids, current_user):
+    user_ids = _parse_share_user_ids(raw_user_ids)
+
+    if current_user and current_user.id not in user_ids:
+        user_ids.append(current_user.id)
+
+    return user_ids
+
+
+def _grant_current_user_manage_access(report, current_user):
+    if not report or not current_user:
+        return
+
+    own_share = ReportShare.query.filter_by(report_id=report.id, user_id=current_user.id).first()
+
+    if own_share:
+        own_share.access_level = "manage"
+
+
+def _report_access_denied_json(message="Недостаточно прав для доступа к отчету."):
+    return jsonify({"success": False, "error": message}), 403
 
 
 def _normalize_optional_int(value):
@@ -1447,7 +1687,7 @@ def _build_block_nav_text(content_text, rows, items):
     words = source_text.split()
 
     if not words:
-        return "Пустой блок"
+        return "Ручной раздел отчёта"
 
     return " ".join(words[:6])
 

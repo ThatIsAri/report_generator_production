@@ -109,6 +109,7 @@ document.addEventListener("DOMContentLoaded", function () {
     var dashboardPreviewStage = document.querySelector("[data-dashboard-preview-stage]");
     var dashboardPreviewDocument = document.querySelector("[data-dashboard-preview-document]");
     var dashboardPreviewEdit = document.querySelector("[data-dashboard-preview-edit]");
+    var dashboardPreviewOpen = document.querySelector("[data-dashboard-preview-open]");
     var dashboardPreviewFolderButton = document.querySelector("[data-dashboard-preview-folder-button]");
     var dashboardPreviewFolderText = document.querySelector("[data-dashboard-preview-folder-text]");
     var dashboardPreviewLinkButton = document.querySelector("[data-dashboard-preview-link-button]");
@@ -116,6 +117,13 @@ document.addEventListener("DOMContentLoaded", function () {
     var dashboardPreviewShareButton = document.querySelector("[data-dashboard-preview-share-button]");
     var dashboardPreviewShareText = document.querySelector("[data-dashboard-preview-share-text]");
     var dashboardPreviewSharesDropdown = document.querySelector("[data-dashboard-preview-shares-dropdown]");
+    var reportOpenPage = document.querySelector("[data-report-open-page]");
+    var reportOpenActions = document.querySelector("[data-report-open-actions]");
+    var reportOpenStage = document.querySelector("[data-report-open-stage]");
+    var reportOpenDocument = document.querySelector("[data-report-open-document]");
+    var reportOpenPayload = document.querySelector("[data-report-open-payload]");
+    var reportOpenBack = document.querySelector("[data-report-open-back]");
+    var reportOpenPrint = document.querySelector("[data-report-open-print]");
     var renameModal = document.querySelector('[data-modal="renameReportModal"]');
     var renameForm = document.querySelector("[data-rename-form]");
     var renameTitle = document.querySelector("[data-rename-title]");
@@ -655,6 +663,7 @@ document.addEventListener("DOMContentLoaded", function () {
     var editorRoot = document.querySelector("[data-editor-root]");
     var editorPages = document.querySelector("[data-editor-pages]");
     var editorSourceContent = document.querySelector("[data-editor-source-content]");
+    var editorInitialStateSource = document.querySelector("[data-editor-initial-state]");
     var editorToolbar = document.querySelector(".editor-toolbar");
     var currentEditablePage = null;
     var editorState = {
@@ -1219,6 +1228,25 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    if (dashboardPreviewOpen) {
+        dashboardPreviewOpen.addEventListener("click", function (event) {
+            var openUrl = dashboardPreviewOpen.getAttribute("href") || "";
+
+            if (!openUrl || openUrl === "#" || dashboardPreviewOpen.classList.contains("is-disabled")) {
+                event.preventDefault();
+                showToast("Не удалось определить отчет для открытия", "error");
+                return;
+            }
+
+            if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+                return;
+            }
+
+            event.preventDefault();
+            window.location.href = openUrl;
+        });
+    }
+
     document.querySelectorAll("[data-open-rename-modal]").forEach(function (button) {
         button.addEventListener("click", function () {
             closeCardMenus();
@@ -1442,6 +1470,7 @@ document.addEventListener("DOMContentLoaded", function () {
     initializePreviewBlocks();
     initializeEditor();
     initializeDraftSaveControls();
+    initializeReportOpenPage();
 
     document.addEventListener("click", function (event) {
         var exportToggle = event.target.closest("[data-report-export-toggle]");
@@ -6805,7 +6834,9 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        paginateEditorContent();
+        if (!restoreInitialEditorState()) {
+            paginateEditorContent();
+        }
         currentEditablePage = document.querySelector("[data-editable-page]");
         updateEditorRulerWidth();
         saveEditorState();
@@ -7073,10 +7104,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
             page.appendChild(node);
 
-            if (getEditorUsedHeight(page) > getEditorPageLimit(page) && getEditorContentChildCount(page) > 1) {
+            if (isEditorPageOverflowing(page) && isSplittableReportTable(node)) {
                 page.removeChild(node);
-                page = appendEditorPage(editorPages.querySelectorAll("[data-editable-page]").length + 1, orientations[editorPages.querySelectorAll("[data-editable-page]").length] || "portrait");
+                page = appendSplitEditorTable(page, node, orientations);
+            } else if (isEditorPageOverflowing(page) && getEditorContentChildCount(page) > 1) {
+                page.removeChild(node);
+                page = appendEditorOverflowPage(orientations, page.dataset.orientation || "portrait");
                 page.appendChild(node);
+
+                if (isEditorPageOverflowing(page) && isSplittableReportTable(node)) {
+                    page.removeChild(node);
+                    page = appendSplitEditorTable(page, node, orientations);
+                }
             }
         });
 
@@ -7090,6 +7129,64 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         setCurrentEditablePage(pages[Math.min(currentIndex, pages.length - 1)] || pages[0]);
+    }
+
+    function appendEditorOverflowPage(orientations, fallbackOrientation) {
+        var pageIndex = editorPages.querySelectorAll("[data-editable-page]").length;
+
+        return appendEditorPage(pageIndex + 1, orientations[pageIndex] || fallbackOrientation || "portrait");
+    }
+
+    function appendSplitEditorTable(page, table, orientations) {
+        var rows = getReportTableBodyRows(table);
+        var rowIndex = 0;
+
+        if (!rows.length) {
+            page.appendChild(table);
+            return page;
+        }
+
+        while (rowIndex < rows.length) {
+            var chunk = createReportTableChunk(table);
+            var rowsInChunk = 0;
+            var movedToNextPage = false;
+
+            page.appendChild(chunk.table);
+
+            while (rowIndex < rows.length) {
+                var row = rows[rowIndex].cloneNode(true);
+
+                chunk.body.appendChild(row);
+
+                if (isEditorPageOverflowing(page)) {
+                    if (!rowsInChunk && getEditorContentChildCount(page) > 1) {
+                        chunk.body.removeChild(row);
+                        page.removeChild(chunk.table);
+                        page = appendEditorOverflowPage(orientations, page.dataset.orientation || "portrait");
+                        movedToNextPage = true;
+                        break;
+                    }
+
+                    if (!rowsInChunk) {
+                        rowIndex += 1;
+                        rowsInChunk += 1;
+                    } else {
+                        chunk.body.removeChild(row);
+                    }
+
+                    break;
+                }
+
+                rowIndex += 1;
+                rowsInChunk += 1;
+            }
+
+            if (!movedToNextPage && rowIndex < rows.length && rowsInChunk) {
+                page = appendEditorOverflowPage(orientations, page.dataset.orientation || "portrait");
+            }
+        }
+
+        return page;
     }
 
     function collectEditorContentNodes(keepCaretMarker) {
@@ -7292,6 +7389,127 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    function restoreInitialEditorState() {
+        var state = readInitialEditorState();
+        var html = state.document_html || "";
+        var snapshot = parseEditorStateSnapshot(state.document_json);
+
+        if (html.trim() && restoreEditorDocumentHtml(html)) {
+            return true;
+        }
+
+        if (snapshot && snapshot.pages && snapshot.pages.length) {
+            restoreEditorSnapshot(snapshot, { keepFocus: true });
+            return true;
+        }
+
+        return false;
+    }
+
+    function readInitialEditorState() {
+        var parsed;
+
+        if (!editorInitialStateSource || !editorInitialStateSource.textContent.trim()) {
+            return {};
+        }
+
+        try {
+            parsed = JSON.parse(editorInitialStateSource.textContent);
+        } catch (error) {
+            return {};
+        }
+
+        return parsed && typeof parsed === "object" ? parsed : {};
+    }
+
+    function parseEditorStateSnapshot(raw) {
+        var parsed;
+
+        if (!raw) {
+            return null;
+        }
+
+        if (typeof raw === "object") {
+            parsed = raw;
+        } else {
+            try {
+                parsed = JSON.parse(raw);
+            } catch (error) {
+                return null;
+            }
+        }
+
+        return parsed && Array.isArray(parsed.pages) ? parsed : null;
+    }
+
+    function restoreEditorDocumentHtml(html) {
+        var holder = document.createElement("div");
+        var pageNodes;
+        var repaired;
+
+        holder.innerHTML = html || "";
+        pageNodes = holder.querySelectorAll("[data-editable-page], .editable-page");
+
+        if (!pageNodes.length) {
+            return false;
+        }
+
+        editorPages.innerHTML = "";
+        Array.prototype.forEach.call(pageNodes, function (pageNode, index) {
+            var wrapper = pageNode.closest(".editor-page-wrapper");
+            var orientation = pageNode.dataset.orientation || (wrapper && wrapper.classList.contains("is-landscape") ? "landscape" : "portrait");
+            var page = appendEditorPage(index + 1, orientation);
+
+            page.innerHTML = pageNode.innerHTML;
+        });
+
+        updateEditorPageNumbers();
+        enhanceEditorTables(editorPages);
+        repaired = repairRestoredEditorPagination();
+        setCurrentEditablePage(editorPages.querySelector("[data-editable-page]"));
+
+        window.requestAnimationFrame(function () {
+            if (repairRestoredEditorPagination()) {
+                saveEditorState();
+            }
+        });
+
+        if (repaired) {
+            saveEditorState();
+        }
+
+        return true;
+    }
+
+    function repairRestoredEditorPagination() {
+        var pages = Array.prototype.slice.call(editorPages.querySelectorAll("[data-editable-page]"));
+        var shouldReflow = pages.some(function (page) {
+            return isEditorPageOverflowing(page) &&
+                (getEditorContentChildCount(page) > 1 || hasSplittableReportTable(page));
+        });
+
+        if (!shouldReflow) {
+            return false;
+        }
+
+        paginateEditorContent(collectEditorContentNodes(false));
+        return true;
+    }
+
+    function isEditorPageOverflowing(page) {
+        if (!page) {
+            return false;
+        }
+
+        return getEditorUsedHeight(page) > getEditorPageLimit(page) + 4;
+    }
+
+    function hasSplittableReportTable(root) {
+        return Array.prototype.some.call(root.children || [], function (child) {
+            return isSplittableReportTable(child);
+        });
+    }
+
     function getEditorPageOrientations() {
         return Array.prototype.map.call(editorPages.querySelectorAll("[data-editable-page]"), function (page) {
             return page.dataset.orientation || "portrait";
@@ -7328,6 +7546,57 @@ document.addEventListener("DOMContentLoaded", function () {
         return Array.prototype.filter.call(page.children, function (child) {
             return !child.classList.contains("editor-page-number");
         }).length;
+    }
+
+    function isSplittableReportTable(node) {
+        return node &&
+            node.nodeType === 1 &&
+            node.matches("table") &&
+            getReportTableBodyRows(node).length > 1;
+    }
+
+    function getReportTableBodyRows(table) {
+        var bodyRows = [];
+
+        if (!table || !table.rows) {
+            return bodyRows;
+        }
+
+        if (table.tBodies && table.tBodies.length) {
+            Array.prototype.forEach.call(table.tBodies, function (body) {
+                bodyRows = bodyRows.concat(Array.prototype.slice.call(body.rows));
+            });
+        } else {
+            bodyRows = Array.prototype.filter.call(table.rows, function (row) {
+                var section = row.parentElement ? row.parentElement.tagName : "";
+
+                return section !== "THEAD" && section !== "TFOOT";
+            });
+        }
+
+        return bodyRows;
+    }
+
+    function createReportTableChunk(table) {
+        var chunk = table.cloneNode(false);
+        var body = document.createElement("tbody");
+
+        Array.prototype.forEach.call(table.children, function (child) {
+            if (child.tagName === "CAPTION" || child.tagName === "COLGROUP") {
+                chunk.appendChild(child.cloneNode(true));
+            }
+        });
+
+        if (table.tHead) {
+            chunk.appendChild(table.tHead.cloneNode(true));
+        }
+
+        chunk.appendChild(body);
+
+        return {
+            table: chunk,
+            body: body
+        };
     }
 
     function getCurrentEditablePage() {
@@ -8904,7 +9173,8 @@ document.addEventListener("DOMContentLoaded", function () {
         markEditorDirty();
     }
 
-    function restoreEditorSnapshot(snapshot) {
+    function restoreEditorSnapshot(snapshot, options) {
+        options = options || {};
         restoringEditorHistory = true;
         editorPages.innerHTML = "";
 
@@ -8916,7 +9186,7 @@ document.addEventListener("DOMContentLoaded", function () {
         updateEditorPageNumbers();
         enhanceEditorTables(editorPages);
         setCurrentEditablePage(editorPages.querySelector("[data-editable-page]"));
-        if (currentEditablePage) {
+        if (currentEditablePage && !options.keepFocus) {
             currentEditablePage.focus();
         }
         restoringEditorHistory = false;
@@ -8932,6 +9202,22 @@ document.addEventListener("DOMContentLoaded", function () {
         previewModal.querySelectorAll("[data-report-export-root]").forEach(function (root) {
             root.dataset.reportExportUrl = url || "";
         });
+    }
+
+    function setDashboardPreviewOpenUrl(url) {
+        if (!dashboardPreviewOpen) {
+            return;
+        }
+
+        if (url) {
+            dashboardPreviewOpen.href = url;
+            dashboardPreviewOpen.classList.remove("is-disabled");
+            dashboardPreviewOpen.removeAttribute("aria-disabled");
+        } else {
+            dashboardPreviewOpen.href = "#";
+            dashboardPreviewOpen.classList.add("is-disabled");
+            dashboardPreviewOpen.setAttribute("aria-disabled", "true");
+        }
     }
 
     function toggleReportExportMenu(root) {
@@ -9129,6 +9415,145 @@ document.addEventListener("DOMContentLoaded", function () {
         loadPreview(card.dataset.dashboardPreviewUrl, card);
     }
 
+    function initializeReportOpenPage() {
+        var previewUrl;
+        var initialPayload;
+
+        if (!reportOpenPage || !reportOpenDocument) {
+            return;
+        }
+
+        initializeReportOpenToolbar();
+        initializeReportOpenBackButton();
+        initializeReportOpenPrintButton();
+        initialPayload = getReportOpenPayload();
+
+        if (initialPayload) {
+            renderReportOpenDocument(initialPayload);
+            return;
+        }
+
+        previewUrl = reportOpenPage.dataset.reportOpenPreviewUrl || "";
+
+        if (!previewUrl) {
+            setReportOpenLoading(false);
+            showToast("Не удалось определить отчет для открытия", "error");
+            return;
+        }
+
+        setReportOpenLoading(true);
+
+        fetch(previewUrl)
+            .then(function (response) {
+                if (!response.ok) {
+                    throw new Error("Не удалось открыть отчет.");
+                }
+
+                return response.json();
+            })
+            .then(function (data) {
+                renderReportOpenDocument(data);
+            })
+            .catch(function (error) {
+                setReportOpenLoading(false);
+                showToast(error.message || "Не удалось открыть отчет", "error");
+            });
+    }
+
+    function getReportOpenPayload() {
+        if (!reportOpenPayload) {
+            return null;
+        }
+
+        try {
+            return JSON.parse(reportOpenPayload.textContent || "null");
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function renderReportOpenDocument(data) {
+        reportOpenDocument.innerHTML = "";
+        reportOpenDocument.appendChild(createDashboardPreviewPages(data || {}));
+        repairDashboardPreviewPagination(reportOpenDocument);
+        window.requestAnimationFrame(function () {
+            repairDashboardPreviewPagination(reportOpenDocument);
+        });
+        setReportOpenLoading(false);
+        updateReportOpenToolbarOffset();
+    }
+
+    function initializeReportOpenToolbar() {
+        updateReportOpenToolbarOffset();
+        window.addEventListener("resize", updateReportOpenToolbarOffset);
+        window.requestAnimationFrame(updateReportOpenToolbarOffset);
+    }
+
+    function updateReportOpenToolbarOffset() {
+        if (!reportOpenPage || !reportOpenActions) {
+            return;
+        }
+
+        reportOpenPage.style.setProperty("--report-open-toolbar-height", reportOpenActions.offsetHeight + "px");
+    }
+
+    function initializeReportOpenBackButton() {
+        if (!reportOpenBack) {
+            return;
+        }
+
+        reportOpenBack.addEventListener("click", function (event) {
+            var fallbackUrl = reportOpenBack.getAttribute("href") || "/reports";
+            var referrerUrl;
+
+            if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+                return;
+            }
+
+            event.preventDefault();
+
+            if (document.referrer) {
+                try {
+                    referrerUrl = new URL(document.referrer);
+                } catch (error) {
+                    referrerUrl = null;
+                }
+
+                if (
+                    referrerUrl &&
+                    referrerUrl.origin === window.location.origin &&
+                    referrerUrl.href !== window.location.href &&
+                    window.history.length > 1
+                ) {
+                    window.history.back();
+                    return;
+                }
+            }
+
+            window.location.href = fallbackUrl;
+        });
+    }
+
+    function initializeReportOpenPrintButton() {
+        if (!reportOpenPrint) {
+            return;
+        }
+
+        reportOpenPrint.addEventListener("click", function () {
+            window.print();
+        });
+    }
+
+    function setReportOpenLoading(isLoading) {
+        if (reportOpenStage) {
+            reportOpenStage.classList.toggle("is-loading", isLoading);
+        }
+
+        if (reportOpenDocument) {
+            reportOpenDocument.classList.toggle("is-blurred", isLoading);
+        }
+    }
+
     function loadPreview(url, card) {
         if (!previewModal || !url) {
             return;
@@ -9140,6 +9565,7 @@ document.addEventListener("DOMContentLoaded", function () {
         dashboardPreviewLinkUpdateUrl = "";
         dashboardPreviewExportUrl = "";
         setPreviewExportUrl("");
+        setDashboardPreviewOpenUrl("");
         updateDashboardPreviewShares([]);
         closeDashboardPreviewSharesDropdown();
         updateDashboardPreviewFolderDisplay(card ? card.dataset.folderId || "" : "", "");
@@ -9202,12 +9628,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
         dashboardPreviewDocument.innerHTML = "";
         dashboardPreviewDocument.appendChild(createDashboardPreviewPages(data));
+        repairDashboardPreviewPagination(dashboardPreviewDocument);
+        window.requestAnimationFrame(function () {
+            repairDashboardPreviewPagination(dashboardPreviewDocument);
+        });
 
         dashboardPreviewFolderUpdateUrl = data.folder_update_url || "";
         dashboardPreviewLinkUpdateUrl = data.link_update_url || "";
         dashboardPreviewExportUrl = data.export_url || "";
         dashboardPreviewReportId = data.id ? String(data.id) : dashboardPreviewReportId;
         setPreviewExportUrl(dashboardPreviewExportUrl);
+        setDashboardPreviewOpenUrl(data.open_url || (data.id ? "/reports/" + encodeURIComponent(data.id) + "/open" : ""));
         updateDashboardPreviewFolderDisplay(data.folder_id || "", data.folder_name || "");
         updateDashboardPreviewLinkDisplay(data.linked_report_id || "", data.linked_report_title || "", data.linked_report_url || "");
         updateDashboardPreviewShares(data.shares || []);
@@ -9308,6 +9739,197 @@ document.addEventListener("DOMContentLoaded", function () {
         return pages;
     }
 
+    function repairDashboardPreviewPagination(root) {
+        var pages;
+        var sheets;
+        var contentNodes = [];
+        var currentSheet;
+
+        if (!root) {
+            return false;
+        }
+
+        pages = root.querySelector(".dashboard-preview-pages");
+
+        if (!pages) {
+            return false;
+        }
+
+        sheets = Array.prototype.slice.call(pages.querySelectorAll(".dashboard-preview-sheet"));
+
+        if (!sheets.some(isDashboardPreviewSheetOverflowing)) {
+            return false;
+        }
+
+        sheets.forEach(function (sheet) {
+            var orientation = sheet.classList.contains("is-landscape") ? "landscape" : "portrait";
+
+            getDashboardPreviewContentNodes(sheet).forEach(function (node) {
+                contentNodes.push({
+                    node: node,
+                    orientation: orientation
+                });
+            });
+        });
+
+        if (!contentNodes.length) {
+            return false;
+        }
+
+        pages.innerHTML = "";
+
+        contentNodes.forEach(function (item) {
+            var node = item.node.cloneNode(true);
+            var orientation = item.orientation || "portrait";
+
+            if (!currentSheet || currentSheet.dataset.previewOrientation !== orientation) {
+                currentSheet = appendDashboardPreviewSheet(pages, orientation);
+            }
+
+            currentSheet.appendChild(node);
+
+            if (isDashboardPreviewSheetOverflowing(currentSheet) && isSplittableReportTable(node)) {
+                currentSheet.removeChild(node);
+                currentSheet = appendSplitDashboardPreviewTable(pages, currentSheet, node, orientation);
+            } else if (isDashboardPreviewSheetOverflowing(currentSheet) && getDashboardPreviewContentNodes(currentSheet).length > 1) {
+                currentSheet.removeChild(node);
+                currentSheet = appendDashboardPreviewSheet(pages, orientation);
+                currentSheet.appendChild(node);
+
+                if (isDashboardPreviewSheetOverflowing(currentSheet) && isSplittableReportTable(node)) {
+                    currentSheet.removeChild(node);
+                    currentSheet = appendSplitDashboardPreviewTable(pages, currentSheet, node, orientation);
+                }
+            }
+        });
+
+        updateDashboardPreviewPageNumbers(pages);
+        return true;
+    }
+
+    function appendSplitDashboardPreviewTable(pages, sheet, table, orientation) {
+        var rows = getReportTableBodyRows(table);
+        var rowIndex = 0;
+
+        if (!rows.length) {
+            sheet.appendChild(table);
+            return sheet;
+        }
+
+        while (rowIndex < rows.length) {
+            var chunk = createReportTableChunk(table);
+            var rowsInChunk = 0;
+            var movedToNextSheet = false;
+
+            sheet.appendChild(chunk.table);
+
+            while (rowIndex < rows.length) {
+                var row = rows[rowIndex].cloneNode(true);
+
+                chunk.body.appendChild(row);
+
+                if (isDashboardPreviewSheetOverflowing(sheet)) {
+                    if (!rowsInChunk && getDashboardPreviewContentNodes(sheet).length > 1) {
+                        chunk.body.removeChild(row);
+                        sheet.removeChild(chunk.table);
+                        sheet = appendDashboardPreviewSheet(pages, orientation);
+                        movedToNextSheet = true;
+                        break;
+                    }
+
+                    if (!rowsInChunk) {
+                        rowIndex += 1;
+                        rowsInChunk += 1;
+                    } else {
+                        chunk.body.removeChild(row);
+                    }
+
+                    break;
+                }
+
+                rowIndex += 1;
+                rowsInChunk += 1;
+            }
+
+            if (!movedToNextSheet && rowIndex < rows.length && rowsInChunk) {
+                sheet = appendDashboardPreviewSheet(pages, orientation);
+            }
+        }
+
+        return sheet;
+    }
+
+    function appendDashboardPreviewSheet(pages, orientation) {
+        var sheet = document.createElement("section");
+
+        sheet.className = "dashboard-preview-sheet dashboard-document-sheet";
+        sheet.dataset.previewOrientation = orientation === "landscape" ? "landscape" : "portrait";
+
+        if (orientation === "landscape") {
+            sheet.classList.add("is-landscape");
+        }
+
+        pages.appendChild(sheet);
+        return sheet;
+    }
+
+    function getDashboardPreviewContentNodes(sheet) {
+        return Array.prototype.filter.call(sheet.childNodes, function (node) {
+            if (node.nodeType === 3) {
+                return node.textContent.trim();
+            }
+
+            if (node.nodeType !== 1) {
+                return false;
+            }
+
+            return !node.classList.contains("dashboard-preview-page-number") &&
+                !node.classList.contains("editor-page-number");
+        });
+    }
+
+    function isDashboardPreviewSheetOverflowing(sheet) {
+        return getDashboardPreviewUsedHeight(sheet) > getDashboardPreviewPageLimit(sheet) + 4;
+    }
+
+    function getDashboardPreviewPageLimit(sheet) {
+        var styles = window.getComputedStyle(sheet);
+        var paddingBottom = parseFloat(styles.paddingBottom) || 0;
+        var baseHeight = sheet.classList.contains("is-landscape") ? 794 : 1123;
+
+        return baseHeight - paddingBottom - 24;
+    }
+
+    function getDashboardPreviewUsedHeight(sheet) {
+        var children = getDashboardPreviewContentNodes(sheet).filter(function (node) {
+            return node.nodeType === 1;
+        });
+        var sheetRect;
+        var lastRect;
+
+        if (!children.length) {
+            return 0;
+        }
+
+        sheetRect = sheet.getBoundingClientRect();
+        lastRect = children[children.length - 1].getBoundingClientRect();
+        return lastRect.bottom - sheetRect.top;
+    }
+
+    function updateDashboardPreviewPageNumbers(pages) {
+        var sheets = pages.querySelectorAll(".dashboard-preview-sheet");
+
+        sheets.forEach(function (sheet, index) {
+            sheet.querySelectorAll(".dashboard-preview-page-number, .editor-page-number").forEach(function (number) {
+                number.remove();
+            });
+
+            if (index > 0) {
+                sheet.appendChild(createDashboardPreviewPageNumber(index + 1));
+            }
+        });
+    }
+
     function createDashboardPreviewTitlePage(data) {
         var sheet = document.createElement("section");
         var title = document.createElement("h1");
@@ -9366,7 +9988,7 @@ document.addEventListener("DOMContentLoaded", function () {
             blockElement.appendChild(createDashboardPreviewList(items));
         } else {
             var paragraph = document.createElement("p");
-            paragraph.textContent = block.content_text || "Пустой блок";
+            paragraph.textContent = block.content_text || "Сводка подготовлена вручную на основе материалов проекта.";
             blockElement.appendChild(paragraph);
         }
 
@@ -9411,7 +10033,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function createDashboardPreviewEmptyBlock() {
         var emptyBlock = document.createElement("div");
         emptyBlock.className = "dashboard-document-block dashboard-document-empty";
-        emptyBlock.textContent = "Импортированные данные не добавлены. Отчет доступен как ручной черновик.";
+        emptyBlock.textContent = "Черновик отчета создан без импортированных файлов. Основные разделы можно дополнить вручную перед сохранением.";
         return emptyBlock;
     }
 

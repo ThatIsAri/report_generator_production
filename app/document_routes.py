@@ -1,5 +1,4 @@
 import json
-from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
 
@@ -32,6 +31,7 @@ from app.models import (
     UserCorrection,
 )
 from app.template_registry import REPORT_TEMPLATES
+from app.time_utils import utc_now
 
 
 documents_bp = Blueprint("documents", __name__, url_prefix="/documents")
@@ -256,7 +256,7 @@ def _save_user_updates(imported_data):
         imported_data.verified_at = None
     else:
         imported_data.verification_status = "verified"
-        imported_data.verified_at = datetime.utcnow()
+        imported_data.verified_at = utc_now()
 
     return changed_fields, missing_fields
 

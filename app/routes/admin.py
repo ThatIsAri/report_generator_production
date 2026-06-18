@@ -2172,7 +2172,7 @@ def get_taxonomy_usage_counts(organization_id):
 def get_current_admin_user():
     ensure_organization_data()
 
-    current_user = User.query.get(session.get("user_id"))
+    current_user = db.session.get(User, session.get("user_id"))
 
     if not current_user:
         return None, (jsonify({"error": "unauthorized"}), 401)

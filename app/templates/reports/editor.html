@@ -232,5 +232,11 @@
             {% endfor %}
         </div>
     </main>
+    <script type="application/json" data-editor-initial-state>
+        {
+            "document_html": {{ (editor_state.document_html or "")|tojson }},
+            "document_json": {{ (editor_state.document_json or "{}")|tojson }}
+        }
+    </script>
 </div>
 {% endblock %}

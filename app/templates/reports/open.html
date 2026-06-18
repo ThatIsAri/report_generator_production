@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{{ report.report_title }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<main
+    class="report-open-page"
+    data-report-open-page
+    data-report-open-preview-url="{{ preview_url }}"
+>
+    <div class="report-open-actions" data-report-open-actions aria-label="Действия с отчетом">
+        <a class="button secondary report-open-action" href="{{ back_url }}" data-report-open-back>← Назад</a>
+
+        {% if editor_url %}
+            <a class="button report-open-action" href="{{ editor_url }}">Редактировать</a>
+        {% else %}
+            <span class="button report-open-action is-disabled" aria-disabled="true">Редактировать</span>
+        {% endif %}
+
+        <div class="report-export-root report-open-export-root" data-report-export-root data-report-export-url="{{ export_url }}">
+            <button class="report-export-toggle report-open-action" type="button" data-report-export-toggle aria-expanded="false">
+                <span data-report-export-label>Экспорт</span>
+            </button>
+            <div class="report-export-menu" data-report-export-menu hidden>
+                <button type="button" data-report-export-format="docx">DOCX</button>
+                <button type="button" data-report-export-format="pdf">PDF</button>
+                <button type="button" data-report-export-format="xml">XML</button>
+            </div>
+        </div>
+
+        <button class="button secondary report-open-action" type="button" data-report-open-print>Печать</button>
+    </div>
+
+    <section class="report-open-stage dashboard-preview-stage is-loading" data-report-open-stage>
+        <div class="report-open-document dashboard-preview-document is-blurred" data-report-open-document>
+            <div class="dashboard-preview-pages">
+                <section class="dashboard-preview-sheet">
+                    <div class="preview-title-kicker">Загрузка отчета</div>
+                    <h1>{{ report.report_title }}</h1>
+                    <p>Документ появится здесь через мгновение.</p>
+                </section>
+            </div>
+        </div>
+        <div class="dashboard-preview-loader" aria-label="Загрузка отчета"></div>
+    </section>
+</main>
+
+<script type="application/json" data-report-open-payload>{{ preview_payload|tojson }}</script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

@@ -119,6 +119,30 @@ def test_non_admin_cannot_open_admin_page(client, app):
     assert response.status_code == 403
 
 
+def test_registration_rejects_short_password(client, app):
+    token = "registration-test-csrf-token"
+
+    with client.session_transaction() as session:
+        session["_csrf_token"] = token
+
+    response = client.post(
+        "/register",
+        data={
+            "_csrf_token": token,
+            "username": "shortpass",
+            "email": "shortpass@example.com",
+            "password": "123",
+            "password_repeat": "123",
+        },
+    )
+
+    assert response.status_code == 200
+    assert "Пароль должен содержать не менее 6 символов".encode("utf-8") in response.data
+
+    with app.app_context():
+        assert User.query.filter_by(username="shortpass").count() == 0
+
+
 def test_admin_cannot_deactivate_self(client, app):
     with app.app_context():
         user = create_user("selfadmin", "admin")

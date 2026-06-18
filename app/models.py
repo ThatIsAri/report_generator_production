@@ -1,6 +1,5 @@
-from datetime import datetime
-
 from app.extensions import db
+from app.time_utils import utc_now
 
 
 class Organization(db.Model):
@@ -12,11 +11,11 @@ class Organization(db.Model):
     description = db.Column(db.Text, nullable=True)
     tariff = db.Column(db.String(100), nullable=False, default="Базовый")
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
     updated_at = db.Column(
         db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utc_now,
+        onupdate=utc_now,
     )
 
     users = db.relationship("User", back_populates="organization")
@@ -38,11 +37,11 @@ class User(db.Model):
     organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id"), nullable=True)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
     updated_at = db.Column(
         db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utc_now,
+        onupdate=utc_now,
     )
 
     organization = db.relationship("Organization", back_populates="users")
@@ -63,11 +62,11 @@ class UserPreference(db.Model):
     setting_key = db.Column(db.String(120), nullable=False)
     value = db.Column(db.String(255), nullable=False)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
     updated_at = db.Column(
         db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utc_now,
+        onupdate=utc_now,
     )
 
     user = db.relationship("User", back_populates="preferences")
@@ -90,11 +89,11 @@ class UserGroup(db.Model):
     created_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
     updated_at = db.Column(
         db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utc_now,
+        onupdate=utc_now,
     )
 
     organization = db.relationship("Organization", backref=db.backref("user_groups", lazy="dynamic"))
@@ -114,7 +113,7 @@ class UserGroupMember(db.Model):
     group_id = db.Column(db.Integer, db.ForeignKey("user_groups.id"), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     role = db.Column(db.String(50), nullable=False, default="member")
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
 
     group = db.relationship("UserGroup", back_populates="members")
     user = db.relationship("User", back_populates="group_memberships")
@@ -133,7 +132,7 @@ class GroupReportAccess(db.Model):
     group_id = db.Column(db.Integer, db.ForeignKey("user_groups.id"), nullable=False)
     report_id = db.Column(db.Integer, db.ForeignKey("reports.id"), nullable=False)
     access_level = db.Column(db.String(50), nullable=False, default="view")
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
 
     group = db.relationship("UserGroup")
     report = db.relationship("Report")
@@ -152,7 +151,7 @@ class GroupTemplateAccess(db.Model):
     group_id = db.Column(db.Integer, db.ForeignKey("user_groups.id"), nullable=False)
     template_id = db.Column(db.Integer, db.ForeignKey("templates.id"), nullable=False)
     access_level = db.Column(db.String(50), nullable=False, default="view")
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
 
     group = db.relationship("UserGroup")
     template = db.relationship("Template")
@@ -174,11 +173,11 @@ class AccessPermission(db.Model):
     permission_key = db.Column(db.String(120), nullable=False)
     is_allowed = db.Column(db.Boolean, nullable=False, default=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
     updated_at = db.Column(
         db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utc_now,
+        onupdate=utc_now,
     )
 
     organization = db.relationship("Organization")
@@ -210,7 +209,7 @@ class UserActionLog(db.Model):
     metadata_json = db.Column(db.Text, nullable=True)
     ip_address = db.Column(db.String(100), nullable=True)
     user_agent = db.Column(db.String(500), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
 
     organization = db.relationship("Organization")
     user = db.relationship("User")
@@ -243,11 +242,11 @@ class Report(db.Model):
 
     pdf_filename = db.Column(db.String(255), nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
     updated_at = db.Column(
         db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utc_now,
+        onupdate=utc_now,
     )
 
     folder = db.relationship("Folder", back_populates="reports")
@@ -262,7 +261,7 @@ class ReportShare(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     created_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     access_level = db.Column(db.String(50), nullable=False, default="view")
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
 
     report = db.relationship("Report", backref=db.backref("shared_users", cascade="all, delete-orphan"))
     user = db.relationship("User", foreign_keys=[user_id])
@@ -283,11 +282,11 @@ class AdminReportSetting(db.Model):
     setting_key = db.Column(db.String(120), nullable=False)
     value = db.Column(db.String(255), nullable=False)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
     updated_at = db.Column(
         db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utc_now,
+        onupdate=utc_now,
     )
 
     organization = db.relationship("Organization")
@@ -307,11 +306,11 @@ class AdminTemplateSetting(db.Model):
     setting_key = db.Column(db.String(120), nullable=False)
     value = db.Column(db.String(255), nullable=False)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
     updated_at = db.Column(
         db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utc_now,
+        onupdate=utc_now,
     )
 
     organization = db.relationship("Organization")
@@ -331,11 +330,11 @@ class AdminSystemSetting(db.Model):
     setting_key = db.Column(db.String(120), nullable=False)
     value = db.Column(db.String(255), nullable=False)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
     updated_at = db.Column(
         db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utc_now,
+        onupdate=utc_now,
     )
 
     organization = db.relationship("Organization")
@@ -359,11 +358,11 @@ class AdminTaxonomyOption(db.Model):
     sort_order = db.Column(db.Integer, nullable=False, default=0)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
     updated_at = db.Column(
         db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utc_now,
+        onupdate=utc_now,
     )
 
     organization = db.relationship("Organization")
@@ -387,11 +386,11 @@ class TemplateChipCategory(db.Model):
     sort_order = db.Column(db.Integer, nullable=False, default=0)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
     updated_at = db.Column(
         db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utc_now,
+        onupdate=utc_now,
     )
 
     organization = db.relationship("Organization")
@@ -418,11 +417,11 @@ class TemplateChipDefinition(db.Model):
     is_favorite = db.Column(db.Boolean, nullable=False, default=False)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
     updated_at = db.Column(
         db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utc_now,
+        onupdate=utc_now,
     )
 
     organization = db.relationship("Organization")
@@ -442,11 +441,11 @@ class Folder(db.Model):
     name = db.Column(db.String(255), nullable=False)
     parent_id = db.Column(db.Integer, db.ForeignKey("folders.id"), nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
     updated_at = db.Column(
         db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utc_now,
+        onupdate=utc_now,
     )
 
     parent = db.relationship("Folder", remote_side=[id], backref=db.backref("children", order_by="Folder.name"))
@@ -465,11 +464,11 @@ class Template(db.Model):
     content_json = db.Column(db.Text, nullable=True)
     latex_template = db.Column(db.Text, nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
     updated_at = db.Column(
         db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utc_now,
+        onupdate=utc_now,
     )
 
     source_template = db.relationship(
@@ -495,7 +494,7 @@ class StatusReport(db.Model):
 
     pdf_filename = db.Column(db.String(255), nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
 
 
 class ImportedDocument(db.Model):
@@ -516,7 +515,7 @@ class ImportedDocument(db.Model):
     detected_profile_title = db.Column(db.String(255), nullable=True)
     classification_confidence = db.Column(db.Float, nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
 
     source_document = db.relationship("SourceDocument", foreign_keys=[source_document_id])
     document_scan = db.relationship("DocumentScan", foreign_keys=[document_scan_id])
@@ -550,7 +549,7 @@ class ImportedReportData(db.Model):
     verification_status = db.Column(db.String(50), nullable=False, default="needs_review")
     verified_at = db.Column(db.DateTime, nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
 
     imported_document = db.relationship(
         "ImportedDocument",
@@ -581,7 +580,7 @@ class SourceDocument(db.Model):
     scan_status = db.Column(db.String(50), nullable=False, default="pending")
     error_message = db.Column(db.Text, nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
 
     scans = db.relationship(
         "DocumentScan",
@@ -612,7 +611,7 @@ class DocumentScan(db.Model):
     scan_json = db.Column(db.Text, nullable=True)
     warnings_text = db.Column(db.Text, nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
 
     source_document = db.relationship(
         "SourceDocument",
@@ -647,7 +646,7 @@ class ExtractedField(db.Model):
     source_type = db.Column(db.String(100), nullable=True)
     source_location = db.Column(db.String(255), nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
 
     document_scan = db.relationship(
         "DocumentScan",
@@ -671,7 +670,7 @@ class NormalizationChange(db.Model):
     normalized_value = db.Column(db.Text, nullable=True)
     change_description = db.Column(db.Text, nullable=False)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
 
     imported_report_data = db.relationship(
         "ImportedReportData",
@@ -695,7 +694,7 @@ class UserCorrection(db.Model):
     new_value = db.Column(db.Text, nullable=True)
     correction_description = db.Column(db.String(255), nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
 
     imported_report_data = db.relationship(
         "ImportedReportData",
@@ -714,7 +713,7 @@ class GeneratedDocument(db.Model):
     tex_filename = db.Column(db.String(255), nullable=False)
     pdf_filename = db.Column(db.String(255), nullable=False)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
 
 
 class ReportDraft(db.Model):
@@ -732,11 +731,11 @@ class ReportDraft(db.Model):
     linked_report_id = db.Column(db.Integer, db.ForeignKey("reports.id"), nullable=True)
     status = db.Column(db.String(50), nullable=False, default="draft")
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
     updated_at = db.Column(
         db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utc_now,
+        onupdate=utc_now,
     )
 
     linked_report = db.relationship("Report", foreign_keys=[linked_report_id])
@@ -772,7 +771,7 @@ class ImportedSourceFile(db.Model):
     error_message = db.Column(db.Text, nullable=True)
     order_index = db.Column(db.Integer, nullable=False, default=0)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
 
     draft = db.relationship("ReportDraft", back_populates="source_files")
     data_blocks = db.relationship(
@@ -807,7 +806,7 @@ class ImportedDataBlock(db.Model):
     color_index = db.Column(db.Integer, nullable=False, default=1)
     is_deleted = db.Column(db.Boolean, nullable=False, default=False)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
 
     draft = db.relationship("ReportDraft", back_populates="data_blocks")
     source_file = db.relationship("ImportedSourceFile", back_populates="data_blocks")
@@ -828,11 +827,11 @@ class ReportEditorState(db.Model):
     document_html = db.Column(db.Text, nullable=True)
     document_json = db.Column(db.Text, nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
     updated_at = db.Column(
         db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utc_now,
+        onupdate=utc_now,
     )
 
     draft = db.relationship("ReportDraft", backref=db.backref("editor_state", uselist=False))
@@ -852,6 +851,6 @@ class ReportVersion(db.Model):
     version_number = db.Column(db.Integer, nullable=False, default=1)
     snapshot_json = db.Column(db.Text, nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
 
     draft = db.relationship("ReportDraft", backref=db.backref("versions", order_by="ReportVersion.version_number"))

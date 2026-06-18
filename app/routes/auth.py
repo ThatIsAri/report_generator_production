@@ -92,6 +92,10 @@ def register():
             flash("Введите пароль", "error")
             return _render_register(username=username, email=email)
 
+        if len(password) < 6:
+            flash("Пароль должен содержать не менее 6 символов", "error")
+            return _render_register(username=username, email=email)
+
         if password != password_repeat:
             flash("Пароли не совпадают", "error")
             return _render_register(username=username, email=email)
@@ -165,7 +169,7 @@ def forgot_password():
 
 @auth_bp.route("/logout", methods=["POST"])
 def logout():
-    user = User.query.get(session.get("user_id")) if session.get("user_id") else None
+    user = db.session.get(User, session.get("user_id")) if session.get("user_id") else None
 
     if user and _should_log_auth_events():
         log_user_action(

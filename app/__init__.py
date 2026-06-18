@@ -1,3 +1,5 @@
+import os
+
 import click
 from flask import Flask, flash, redirect, session, url_for
 from sqlalchemy import inspect, text
@@ -234,6 +236,47 @@ def create_app(config_overrides=None):
             ensure_user_action_log_schema()
             ensure_user_preferences_schema()
             click.echo("База данных и таблицы успешно созданы.")
+
+    @app.cli.command("seed-ftnet-demo")
+    @click.option(
+        "--force-production",
+        is_flag=True,
+        help="Разрешить запуск seed в production-окружении.",
+    )
+    def seed_ftnet_demo(force_production):
+        """Идемпотентное заполнение демонстрационных данных FT NET."""
+        from app.demo_seed import seed_ftnet_demo_data
+
+        allow_production = force_production or (
+            str(os.getenv("ALLOW_DEMO_SEED") or "").strip().lower()
+            in {"1", "true", "yes", "on"}
+        )
+
+        with app.app_context():
+            summary = seed_ftnet_demo_data(allow_production=allow_production)
+            click.echo("Организация: {0}".format(summary["organization"]))
+            click.echo("Пользователей создано: {0}".format(summary["users_created"]))
+            click.echo("Пользователей обновлено: {0}".format(summary["users_updated"]))
+            click.echo("Групп создано: {0}".format(summary["groups_created"]))
+            click.echo("Групп обновлено: {0}".format(summary["groups_updated"]))
+            click.echo("Папок создано: {0}".format(summary["folders_created"]))
+            click.echo("Шаблонов создано: {0}".format(summary["templates_created"]))
+            click.echo("Шаблонов обновлено: {0}".format(summary["templates_updated"]))
+            click.echo("Отчётов создано: {0}".format(summary["reports_created"]))
+            click.echo("Отчётов обновлено: {0}".format(summary["reports_updated"]))
+            click.echo("Старых demo-пользователей деактивировано: {0}".format(summary["legacy_users_deactivated"]))
+            click.echo("Старых demo-шаблонов удалено: {0}".format(summary["legacy_templates_removed"]))
+            click.echo("Старых demo-отчётов удалено: {0}".format(summary["legacy_reports_removed"]))
+
+            if summary.get("temporary_password"):
+                click.echo(
+                    "Временный пароль для новых пользователей {0}: {1}".format(
+                        ", ".join(summary.get("created_usernames") or []),
+                        summary["temporary_password"],
+                    )
+                )
+
+            click.echo("Демонстрационные данные подготовлены успешно.")
 
     return app
 

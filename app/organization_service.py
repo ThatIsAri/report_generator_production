@@ -4,16 +4,21 @@ from app.extensions import db
 from app.models import Organization, User
 
 
-DEFAULT_ORGANIZATION_NAME = "Тест"
-DEFAULT_ORGANIZATION_DESCRIPTION = "Тестовая организация"
-DEFAULT_ORGANIZATION_TARIFF = "Базовый"
+DEFAULT_ORGANIZATION_NAME = "FT NET"
+DEFAULT_ORGANIZATION_DESCRIPTION = (
+    "Группа компаний FT NET. Разработка, внедрение и сопровождение "
+    "корпоративных информационных систем, автоматизация бизнес-процессов "
+    "и формирование управленческой отчётности."
+)
+DEFAULT_ORGANIZATION_TARIFF = "Корпоративный"
+LEGACY_DEFAULT_ORGANIZATION_NAME = "Тест"
 
 _organization_schema_ready = False
 
 
 def ensure_organization_data():
     ensure_organization_schema()
-    organization = ensure_default_test_organization()
+    organization = ensure_default_organization()
     ensure_existing_users_in_default_organization(organization)
     return organization
 
@@ -102,10 +107,14 @@ def ensure_users_organization_index():
     db.session.commit()
 
 
-def ensure_default_test_organization():
-    organization = Organization.query.filter(
-        db.func.lower(Organization.name) == DEFAULT_ORGANIZATION_NAME.lower()
-    ).first()
+def ensure_default_organization():
+    organization = find_organization_by_name(DEFAULT_ORGANIZATION_NAME)
+    legacy_organization = find_organization_by_name(LEGACY_DEFAULT_ORGANIZATION_NAME)
+
+    if organization and legacy_organization and organization.id != legacy_organization.id:
+        migrate_organization_references(legacy_organization.id, organization.id)
+        db.session.delete(legacy_organization)
+        db.session.commit()
 
     if organization:
         changed = False
@@ -123,6 +132,13 @@ def ensure_default_test_organization():
 
         return organization
 
+    if legacy_organization:
+        legacy_organization.name = DEFAULT_ORGANIZATION_NAME
+        legacy_organization.description = DEFAULT_ORGANIZATION_DESCRIPTION
+        legacy_organization.tariff = DEFAULT_ORGANIZATION_TARIFF
+        db.session.commit()
+        return legacy_organization
+
     organization = Organization(
         name=DEFAULT_ORGANIZATION_NAME,
         avatar=None,
@@ -133,6 +149,60 @@ def ensure_default_test_organization():
     db.session.commit()
 
     return organization
+
+
+def ensure_default_test_organization():
+    return ensure_default_organization()
+
+
+def find_organization_by_name(name):
+    normalized_name = (name or "").strip().lower()
+
+    for organization in Organization.query.all():
+        if (organization.name or "").strip().lower() == normalized_name:
+            return organization
+
+    return None
+
+
+def migrate_organization_references(source_organization_id, target_organization_id):
+    if not source_organization_id or not target_organization_id:
+        return
+
+    if source_organization_id == target_organization_id:
+        return
+
+    reference_updates = [
+        ("users", "organization_id"),
+        ("user_groups", "organization_id"),
+        ("access_permissions", "organization_id"),
+        ("user_action_logs", "organization_id"),
+        ("admin_report_settings", "organization_id"),
+        ("admin_template_settings", "organization_id"),
+        ("admin_system_settings", "organization_id"),
+        ("admin_taxonomy_options", "organization_id"),
+        ("template_chip_categories", "organization_id"),
+        ("template_chip_definitions", "organization_id"),
+    ]
+    inspector = inspect(db.engine)
+    table_names = set(inspector.get_table_names())
+
+    for table_name, column_name in reference_updates:
+        if table_name not in table_names:
+            continue
+
+        db.session.execute(
+            text(
+                "UPDATE {0} SET {1} = :target_id WHERE {1} = :source_id".format(
+                    table_name,
+                    column_name,
+                )
+            ),
+            {
+                "target_id": target_organization_id,
+                "source_id": source_organization_id,
+            },
+        )
 
 
 def ensure_existing_users_in_default_organization(organization):
